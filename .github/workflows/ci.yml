@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run ruff check
+        run: uv run ruff check
+
+      - name: Run ruff format check
+        run: uv run ruff format --check
+
+      - name: Run ty check
+        run: uv run ty check django_prefetch_values/
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Python 3.13 supports Django 6.0
+          - python: "3.13"
+            django: "6.0"
+          # Python 3.14 supports Django 6.0
+          - python: "3.14"
+            django: "6.0"
+          # Python 3.14t (free-threaded) supports Django 6.0
+          - python: "3.14t"
+            django: "6.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        run: uv python install ${{ matrix.python }}
+
+      - name: Install dependencies with Django ${{ matrix.django }}
+        run: |
+          uv sync --group dev
+          uv pip install "Django~=${{ matrix.django }}.0"
+
+      - name: Run tests
+        run: uv run pytest -n auto

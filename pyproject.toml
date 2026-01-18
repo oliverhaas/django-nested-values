@@ -1,0 +1,138 @@
+[project]
+name = "django-prefetch-values"
+version = "0.1.0"
+description = "Enable .prefetch_related().values() in Django ORM - returns nested dicts with prefetched relations"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.13"
+keywords = ["django", "orm", "prefetch", "values", "queryset", "prefetch_related"]
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: Django",
+  "Framework :: Django :: 6.0",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Database",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
+]
+dependencies = ["django>=6.0.0"]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/django-prefetch-values"
+Documentation = "https://yourusername.github.io/django-prefetch-values/"
+Repository = "https://github.com/yourusername/django-prefetch-values.git"
+
+[dependency-groups]
+dev = [
+  "pre-commit==4.5.1",
+  "pytest==9.0.2",
+  "pytest-cov==7.0.0",
+  "pytest-django==4.11.1",
+  "pytest-xdist==3.8.0",
+  "ruff==0.14.13",
+  "ty==0.0.12",
+]
+docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.1", "mike==2.1.3"]
+
+[build-system]
+requires = ["hatchling==1.28.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["django_prefetch_values"]
+
+[tool.hatch.build.targets.sdist]
+include = ["django_prefetch_values"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+explicit-preview-rules = true
+fixable = ["ALL"]
+ignore = [
+  "ANN401",  # Any needed for untyped Django APIs
+  "ARG001",  # Signal handlers and overrides have required signatures
+  "ARG002",
+  "B007",    # Loop variable not used - sometimes intentional in nested loops
+  "C901",    # Some functions are inherently complex
+  "COM812",  # Conflicts with ruff-format
+  "D",       # Docstring rules are too extensive
+  "E5",      # 120 char limit is sufficient
+  "EM101",   # Extracting exception messages to variables hurts readability
+  "EM102",
+  "FBT001",  # Boolean traps - too many violations, breaks compatibility
+  "FBT002",
+  "N802",    # Naming follows Django conventions
+  "N806",
+  "PLC0415", # Lazy imports for optional dependencies
+  "PLR0911", # Too many return statements - complex ORM code requires this
+  "PLR0912", # Too many branches - complex ORM code requires this
+  "PLR1704", # Redefining argument in context manager
+  "PYI024",  # namedtuple usage follows Django patterns
+  "RUF005",  # Tuple concatenation is clearer
+  "RUF015",  # Readability over micro-optimization
+  "RUF059",  # Keep unused variables explicit
+  "SLF001",  # Private member access needed for Django internals
+  "TRY003",  # Long exception messages are fine
+]
+preview = true
+select = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "ANN",     # Type annotations not required in tests
+  "ERA001",  # Commented code in models is explanatory
+  "PLR0913", # Too many arguments in test fixtures
+  "PLR2004", # Magic values in tests are fine
+  "RUF012",  # Django model attributes don't need ClassVar
+  "S101",    # assert in tests
+  "S105",    # Hardcoded passwords in test settings
+]
+"benchmarks/**" = [
+  "ANN",     # Type annotations not required in benchmarks
+  "DJ008",   # __str__ not needed for benchmark models
+  "E402",    # Imports after django.setup() is required
+  "ERA001",  # Commented code is explanatory
+  "INP001",  # Benchmarks don't need __init__.py in namespace
+  "PERF401", # List comprehensions not always cleaner in benchmarks
+  "PLR0913", # Too many arguments
+  "PLR0915", # Long setup function is fine
+  "PLR2004", # Magic values in benchmarks are fine
+  "RET504",  # Explicit return assignments improve readability
+  "RUF012",  # Django model attributes don't need ClassVar
+  "S105",    # Hardcoded passwords in benchmark settings
+  "S311",    # random is fine for benchmarks
+  "T201",    # print is fine in benchmarks
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+testpaths = ["tests"]
+markers = [
+  "unit: marks tests as unit tests",
+  "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+concurrency = ["thread"]
+branch = true
+source = ["django_prefetch_values"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
