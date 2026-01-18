@@ -1,8 +1,8 @@
 site_name: Django Prefetch Values
-site_url: https://yourusername.github.io/django-prefetch-values/
+site_url: https://oliverhaas.github.io/django-prefetch-values/
 site_description: Enable .prefetch_related().values() in Django ORM
-repo_name: yourusername/django-prefetch-values
-repo_url: https://github.com/yourusername/django-prefetch-values
+repo_name: oliverhaas/django-prefetch-values
+repo_url: https://github.com/oliverhaas/django-prefetch-values
 
 theme:
   name: material

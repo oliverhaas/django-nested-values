@@ -2,13 +2,7 @@
 
 Enable `.prefetch_related().values()` in Django ORM - returns nested dicts with prefetched relations instead of model instances.
 
-**~4.6x faster** than standard Django ORM for prefetch queries.
-
-## Why Use This?
-
-Django's built-in `.values()` ignores `prefetch_related()`, which means you can't get prefetched relations as nested dictionaries. This package solves that problem.
-
-**Main use case**: APIs (django-ninja, DRF) where data gets passed to Pydantic models or serializers. Instead of hydrating Django model instances just to serialize them back to dicts, fetch the raw values directly from the database.
+This package solves [Django ticket #26565](https://code.djangoproject.com/ticket/26565), which has been open since 2016.
 
 ## Quick Example
 
@@ -34,18 +28,6 @@ For list endpoints with large page sizes (e.g., 1000 items) and multiple relatio
 |----------|------|
 | Standard Django | ~130ms |
 | django-prefetch-values | ~28ms |
-
-## Installation
-
-```bash
-pip install django-prefetch-values
-```
-
-Or with uv:
-
-```bash
-uv add django-prefetch-values
-```
 
 ## Requirements
 

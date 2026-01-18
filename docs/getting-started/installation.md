@@ -19,18 +19,9 @@ uv add django-prefetch-values
 
 ## Development Installation
 
-Clone the repository and install in development mode:
-
 ```bash
-git clone https://github.com/yourusername/django-prefetch-values.git
+git clone https://github.com/oliverhaas/django-prefetch-values.git
 cd django-prefetch-values
 uv venv
 uv sync --group dev
-```
-
-## Verify Installation
-
-```python
-from django_prefetch_values import PrefetchValuesQuerySet
-print(PrefetchValuesQuerySet)  # Should print the class
 ```

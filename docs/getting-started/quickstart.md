@@ -1,8 +1,8 @@
 # Quick Start
 
-## Basic Setup
+## Setup
 
-Add the `PrefetchValuesQuerySet` as your model's manager:
+Add `PrefetchValuesQuerySet` as your model's manager:
 
 ```python
 from django.db import models
@@ -22,9 +22,7 @@ class Book(models.Model):
     objects = PrefetchValuesQuerySet.as_manager()
 ```
 
-## Basic Usage
-
-Once your models use `PrefetchValuesQuerySet`, you can chain `.prefetch_related()` with `.values()`:
+## Usage
 
 ```python
 # Standard Django - prefetch_related is IGNORED with values()
@@ -36,62 +34,25 @@ books = Book.objects.prefetch_related("authors").values()
 # [{"id": 1, "title": "Book 1", "authors": [{"id": 1, "name": "Author 1"}, ...]}, ...]
 ```
 
-## Supported Relation Types
+## Supported Relations
 
-The package supports all Django relation types:
+- **ManyToMany**: `Book.objects.prefetch_related("authors").values()`
+- **Reverse ForeignKey**: `Author.objects.prefetch_related("books").values()`
+- **Nested**: `Publisher.objects.prefetch_related(Prefetch("books", queryset=Book.objects.prefetch_related("authors"))).values()`
 
-### Many-to-Many
-
-```python
-Book.objects.prefetch_related("authors").values()
-```
-
-### Reverse Foreign Key (many-to-one)
-
-```python
-Author.objects.prefetch_related("books").values()
-```
-
-### Nested Prefetches
-
-```python
-from django.db.models import Prefetch
-
-Publisher.objects.prefetch_related(
-    Prefetch("books", queryset=Book.objects.prefetch_related("authors"))
-).values()
-```
-
-## Using with Prefetch Objects
-
-You can use Django's `Prefetch` object for more control:
+## Prefetch Objects
 
 ```python
 from django.db.models import Prefetch
 
 # Filter prefetched data
-books = Book.objects.prefetch_related(
+Book.objects.prefetch_related(
     Prefetch("authors", queryset=Author.objects.filter(name__startswith="A"))
 ).values()
 
-# Use to_attr
-books = Book.objects.prefetch_related(
-    Prefetch("authors", queryset=Author.objects.all(), to_attr="author_list")
+# Custom to_attr
+Book.objects.prefetch_related(
+    Prefetch("authors", to_attr="author_list")
 ).values()
 # [{"id": 1, "title": "Book 1", "author_list": [...]}, ...]
-```
-
-## Selecting Specific Fields
-
-You can limit which fields are returned:
-
-```python
-# Select specific fields from the main model
-books = Book.objects.prefetch_related("authors").values("id", "title")
-
-# The prefetched relations still include all their fields
-# To limit prefetch fields, use a Prefetch object with values()
-books = Book.objects.prefetch_related(
-    Prefetch("authors", queryset=Author.objects.values("id", "name"))
-).values("id", "title")
 ```
