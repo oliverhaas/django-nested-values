@@ -5,11 +5,19 @@ description = "Enable .prefetch_related().values() in Django ORM - returns neste
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.13"
-keywords = ["django", "orm", "prefetch", "values", "queryset", "prefetch_related"]
+keywords = [
+  "django",
+  "orm",
+  "prefetch",
+  "values",
+  "queryset",
+  "prefetch_related",
+]
 authors = [{ name = "Oliver Haas", email = "ohaas@e1plus.de" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Framework :: Django",
+  "Framework :: Django :: 5.2",
   "Framework :: Django :: 6.0",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
@@ -21,7 +29,7 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
 ]
-dependencies = ["django>=6.0.0"]
+dependencies = ["django>=5.2"]
 
 [project.urls]
 Homepage = "https://github.com/oliverhaas/django-prefetch-values"
@@ -30,6 +38,7 @@ Repository = "https://github.com/oliverhaas/django-prefetch-values.git"
 
 [dependency-groups]
 dev = [
+  "django-stubs>=5.2.0",
   "pre-commit==4.5.1",
   "pytest==9.0.2",
   "pytest-cov==7.0.0",

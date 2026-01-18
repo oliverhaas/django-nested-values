@@ -44,7 +44,10 @@ def setup_database():
         return
 
     print(f"Creating {NUM_PUBLISHERS} publishers...")
-    publishers = [Publisher(name=f"Publisher {i}", country=random.choice(["USA", "UK", "Germany", "France", "Japan"])) for i in range(NUM_PUBLISHERS)]
+    publishers = [
+        Publisher(name=f"Publisher {i}", country=random.choice(["USA", "UK", "Germany", "France", "Japan"]))
+        for i in range(NUM_PUBLISHERS)
+    ]
     Publisher.objects.bulk_create(publishers)
     publishers = list(Publisher.objects.all())
 
@@ -108,7 +111,7 @@ def setup_database():
                     number=j + 1,
                     page_count=random.randint(10, 50),
                     book=book,
-                )
+                ),
             )
     Chapter.objects.bulk_create(chapters)
 
@@ -124,7 +127,7 @@ def setup_database():
                     comment="This is a review comment with some text. " * random.randint(1, 5),
                     reviewer_name=random.choice(reviewer_names),
                     book=book,
-                )
+                ),
             )
     Review.objects.bulk_create(reviews)
 
@@ -140,7 +143,7 @@ def setup_database():
 def benchmark_normal_prefetch():
     """Benchmark: Fetch with prefetch_related, then manually convert to dicts."""
     books = list(
-        Book.objects.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").all()
+        Book.objects.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").all(),
     )
 
     # Convert to dicts manually (what you'd typically do)
@@ -188,7 +191,7 @@ def benchmark_prefetch_values():
             "tags",
             "chapters",
             "reviews",
-        )
+        ),
     )
     return result
 
@@ -205,7 +208,7 @@ def benchmark_values_only():
             "publisher__id",
             "publisher__name",
             "publisher__country",
-        )
+        ),
     )
     return result
 
@@ -284,7 +287,7 @@ def main():
 
     for r in results:
         print(
-            f"{r['name']:<35} {r['mean_time']*1000:>8.2f}    {r['std_time']*1000:>6.2f}    {r['query_count']:>5}"
+            f"{r['name']:<35} {r['mean_time'] * 1000:>8.2f}    {r['std_time'] * 1000:>6.2f}    {r['query_count']:>5}",
         )
 
     print(f"\n{'=' * 70}")
@@ -295,10 +298,12 @@ def main():
     prefetch_values = results[1]
 
     speedup = normal["mean_time"] / prefetch_values["mean_time"]
-    print(f"prefetch_related().values() is {speedup:.2f}x {'faster' if speedup > 1 else 'slower'} than normal prefetch + manual dict")
-    print(f"  - Normal: {normal['mean_time']*1000:.2f}ms")
-    print(f"  - values(): {prefetch_values['mean_time']*1000:.2f}ms")
-    print(f"  - Difference: {(normal['mean_time'] - prefetch_values['mean_time'])*1000:.2f}ms")
+    print(
+        f"prefetch_related().values() is {speedup:.2f}x {'faster' if speedup > 1 else 'slower'} than normal prefetch + manual dict",
+    )
+    print(f"  - Normal: {normal['mean_time'] * 1000:.2f}ms")
+    print(f"  - values(): {prefetch_values['mean_time'] * 1000:.2f}ms")
+    print(f"  - Difference: {(normal['mean_time'] - prefetch_values['mean_time']) * 1000:.2f}ms")
 
     # Memory comparison (rough)
     print(f"\nQuery counts are identical: {normal['query_count']} queries each")

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Self
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import ForeignKey, ManyToManyField, ManyToManyRel, ManyToOneRel, Prefetch, QuerySet
@@ -11,8 +11,14 @@ from django.db.models import ForeignKey, ManyToManyField, ManyToManyRel, ManyToO
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from django.db.models.expressions import Combinable
+
 
 class PrefetchValuesQuerySet(QuerySet):
+    # Internal attributes for prefetch values handling
+    _prefetch_values_fields: tuple[str, ...]
+    _prefetch_values_prefetch_fields: dict[str, list[str]]
+    _prefetch_values_nested: dict[str, list[str]]
     """QuerySet that supports combining prefetch_related() with values().
 
     This QuerySet override intercepts .values() calls when prefetch_related()
@@ -31,26 +37,28 @@ class PrefetchValuesQuerySet(QuerySet):
         # Returns: [{'title': '...', 'authors': [{'name': '...', 'email': '...'}, ...]}, ...]
     """
 
-    def values(self, *fields: str, **expressions: Any) -> PrefetchValuesQuerySet:
+    def values(self, *fields: str | Combinable, **expressions: Any) -> Self:
         """Override values() to support prefetch_related() lookups in the fields.
 
         If any field references a prefetched relation, we intercept the call and
         handle the prefetching manually using .values() on each relation.
         """
         # Parse fields to identify prefetch-related fields
-        prefetch_lookups = self._prefetch_related_lookups
-        prefetch_fields, nested_prefetches = self._parse_prefetch_fields(fields, prefetch_lookups)
+        prefetch_lookups = self._prefetch_related_lookups  # type: ignore[attr-defined]
+        # Convert fields to strings for our parsing (Combinable expressions are passed through)
+        str_fields = tuple(f for f in fields if isinstance(f, str))
+        prefetch_fields, nested_prefetches = self._parse_prefetch_fields(str_fields, prefetch_lookups)
 
         if prefetch_fields:
             # We have prefetch-related fields - use custom iteration
             clone = self._clone()
-            clone._prefetch_values_fields = fields
+            clone._prefetch_values_fields = str_fields
             clone._prefetch_values_prefetch_fields = prefetch_fields
             clone._prefetch_values_nested = nested_prefetches
             return clone
 
         # Check if any field references a relation that wasn't prefetched
-        relation_fields = self._get_relation_field_names(fields)
+        relation_fields = self._get_relation_field_names(str_fields)
         if relation_fields:
             missing = relation_fields - set(self._get_prefetch_lookup_names())
             if missing:
@@ -58,7 +66,7 @@ class PrefetchValuesQuerySet(QuerySet):
                 raise ValueError(msg)
 
         # No prefetch-related fields - use default behavior
-        return super().values(*fields, **expressions)
+        return super().values(*fields, **expressions)  # type: ignore[return-value]
 
     def _parse_prefetch_fields(
         self,
@@ -108,7 +116,7 @@ class PrefetchValuesQuerySet(QuerySet):
     def _get_prefetch_lookup_names(self) -> set[str]:
         """Get the top-level names from prefetch_related lookups."""
         names = set()
-        for lookup in self._prefetch_related_lookups:
+        for lookup in self._prefetch_related_lookups:  # type: ignore[attr-defined]
             if isinstance(lookup, Prefetch):
                 # Use to_attr if specified, otherwise the prefetch_to path
                 # get_current_to_attr expects an integer level (0 for top-level)
@@ -139,9 +147,9 @@ class PrefetchValuesQuerySet(QuerySet):
 
         return result
 
-    def _clone(self) -> PrefetchValuesQuerySet:
+    def _clone(self) -> Self:
         """Clone the queryset, preserving our custom attributes."""
-        clone = super()._clone()
+        clone: Self = super()._clone()  # type: ignore[assignment]
         if hasattr(self, "_prefetch_values_fields"):
             clone._prefetch_values_fields = self._prefetch_values_fields
         if hasattr(self, "_prefetch_values_prefetch_fields"):
@@ -184,7 +192,7 @@ class PrefetchValuesQuerySet(QuerySet):
         pk_values = [r[pk_name] for r in main_results]
 
         # Step 2: Fetch each prefetched relation using .values()
-        prefetched_data: dict[str, dict[Any, list[dict]]] = {}
+        prefetched_data: dict[str, dict[Any, list[dict] | dict | None]] = {}
 
         for relation_name, relation_fields in prefetch_fields.items():
             nested = nested_prefetches.get(relation_name, [])
@@ -229,23 +237,23 @@ class PrefetchValuesQuerySet(QuerySet):
             field = meta.get_field(relation_name)
         except FieldDoesNotExist:
             # Might be a to_attr - find the original Prefetch
-            for lookup in self._prefetch_related_lookups:
+            for lookup in self._prefetch_related_lookups:  # type: ignore[attr-defined]
                 if isinstance(lookup, Prefetch):
                     to_attr, _ = lookup.get_current_to_attr(0)
                     if to_attr == relation_name:
                         # Use the Prefetch's queryset
-                        return self._fetch_prefetch_object_values(lookup, relation_fields, nested_relations, parent_pks)
+                        return self._fetch_prefetch_object_values(lookup, relation_fields, nested_relations, parent_pks)  # type: ignore[return-value]
             return {}
 
         # Determine the relationship type and how to query
         if isinstance(field, ManyToManyField):
-            return self._fetch_m2m_values(field, relation_fields, nested_relations, parent_pks)
+            return self._fetch_m2m_values(field, relation_fields, nested_relations, parent_pks)  # type: ignore[return-value]
         if isinstance(field, ManyToOneRel):
-            return self._fetch_reverse_fk_values(field, relation_fields, nested_relations, parent_pks)
+            return self._fetch_reverse_fk_values(field, relation_fields, nested_relations, parent_pks)  # type: ignore[return-value]
         if isinstance(field, ForeignKey):
-            return self._fetch_fk_values(field, relation_fields, nested_relations, parent_pks)
+            return self._fetch_fk_values(field, relation_fields, nested_relations, parent_pks)  # type: ignore[return-value]
         if isinstance(field, ManyToManyRel):
-            return self._fetch_reverse_m2m_values(field, relation_fields, nested_relations, parent_pks)
+            return self._fetch_reverse_m2m_values(field, relation_fields, nested_relations, parent_pks)  # type: ignore[return-value]
 
         return {}
 
@@ -277,7 +285,7 @@ class PrefetchValuesQuerySet(QuerySet):
 
         # Check if there's a custom Prefetch queryset
         custom_qs = None
-        for lookup in self._prefetch_related_lookups:
+        for lookup in self._prefetch_related_lookups:  # type: ignore[attr-defined]
             if isinstance(lookup, Prefetch) and lookup.prefetch_to == field.name:
                 if lookup.queryset is not None:
                     custom_qs = lookup.queryset
@@ -356,7 +364,7 @@ class PrefetchValuesQuerySet(QuerySet):
         related_qs = related_model._default_manager.filter(**{f"{fk_field_name}__in": parent_pks})
 
         # Check if there's a custom Prefetch queryset
-        for lookup in self._prefetch_related_lookups:
+        for lookup in self._prefetch_related_lookups:  # type: ignore[attr-defined]
             if isinstance(lookup, Prefetch) and lookup.prefetch_to == field.name:
                 if lookup.queryset is not None:
                     related_qs = lookup.queryset.filter(**{f"{fk_field_name}__in": parent_pks})
@@ -554,7 +562,7 @@ class PrefetchValuesQuerySet(QuerySet):
         target_col = m2m_field.m2m_column_name()  # FK to related model (Book) -> book_id
 
         # Query the through table to get the mapping - filter by our parent PKs
-        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})
+        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})  # type: ignore[union-attr]
         through_data = list(through_qs.values(source_col, target_col))
 
         if not through_data:
@@ -618,7 +626,11 @@ class PrefetchValuesQuerySet(QuerySet):
             return self._fetch_m2m_values_with_prefetch(field, relation_fields, nested_relations, parent_pks, prefetch)
         if isinstance(field, ManyToOneRel):
             return self._fetch_reverse_fk_values_with_prefetch(
-                field, relation_fields, nested_relations, parent_pks, prefetch
+                field,
+                relation_fields,
+                nested_relations,
+                parent_pks,
+                prefetch,
             )
 
         return {}
@@ -638,7 +650,7 @@ class PrefetchValuesQuerySet(QuerySet):
 
             # Find the relation field
             try:
-                field = model._meta.get_field(rel_name)
+                field = model._meta.get_field(rel_name)  # type: ignore[union-attr]
             except FieldDoesNotExist:
                 continue
 
@@ -659,13 +671,13 @@ class PrefetchValuesQuerySet(QuerySet):
     ) -> dict[Any, list[dict] | dict | None]:
         """Fetch a nested relation for already-fetched data."""
         if isinstance(field, ManyToManyField):
-            return self._fetch_nested_m2m(parent_model, field, further_nested, parent_pks)
+            return self._fetch_nested_m2m(parent_model, field, further_nested, parent_pks)  # type: ignore[return-value]
         if isinstance(field, ManyToOneRel):
-            return self._fetch_nested_reverse_fk(parent_model, field, further_nested, parent_pks)
+            return self._fetch_nested_reverse_fk(parent_model, field, further_nested, parent_pks)  # type: ignore[return-value]
         if isinstance(field, ForeignKey):
-            return self._fetch_nested_fk(parent_model, field, further_nested, parent_pks)
+            return self._fetch_nested_fk(parent_model, field, further_nested, parent_pks)  # type: ignore[return-value]
         if isinstance(field, ManyToManyRel):
-            return self._fetch_nested_reverse_m2m(parent_model, field, further_nested, parent_pks)
+            return self._fetch_nested_reverse_m2m(parent_model, field, further_nested, parent_pks)  # type: ignore[return-value]
         return {}
 
     def _fetch_nested_m2m(
@@ -684,7 +696,7 @@ class PrefetchValuesQuerySet(QuerySet):
         source_col = field.m2m_column_name()  # FK to source model
         target_col = field.m2m_reverse_name()  # FK to related model
 
-        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})
+        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})  # type: ignore[union-attr]
         through_data = list(through_qs.values(source_col, target_col))
 
         if not through_data:
@@ -753,8 +765,8 @@ class PrefetchValuesQuerySet(QuerySet):
 
         # Get FK values from parent data
         fk_column = f"{fk_attr}_id"
-        parent_qs = parent_model._default_manager.filter(pk__in=parent_pks)
-        pk_name = parent_model._meta.pk.name
+        parent_qs = parent_model._default_manager.filter(pk__in=parent_pks)  # type: ignore[union-attr]
+        pk_name = parent_model._meta.pk.name  # type: ignore[union-attr]
         fk_data = {r[pk_name]: r[fk_column] for r in parent_qs.values(pk_name, fk_column)}
 
         fk_values = list({v for v in fk_data.values() if v is not None})
@@ -796,7 +808,7 @@ class PrefetchValuesQuerySet(QuerySet):
         source_col = m2m_field.m2m_reverse_name()  # FK to our parent model
         target_col = m2m_field.m2m_column_name()  # FK to the related model we want
 
-        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})
+        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})  # type: ignore[union-attr]
         through_data = list(through_qs.values(source_col, target_col))
 
         if not through_data:
@@ -828,4 +840,4 @@ class PrefetchValuesQuerySet(QuerySet):
     def __iter__(self) -> Iterator[dict[str, Any]]:
         """Iterate over the queryset."""
         self._fetch_all()
-        yield from self._result_cache
+        yield from self._result_cache  # type: ignore[misc]

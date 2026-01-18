@@ -286,7 +286,7 @@ class TestPrefetchValuesQueryCount:
         # Should be 4 queries: books + authors + tags + chapters
         with django_assert_num_queries(4):
             result = list(
-                qs.prefetch_related("authors", "tags", "chapters").values("title", "authors", "tags", "chapters")
+                qs.prefetch_related("authors", "tags", "chapters").values("title", "authors", "tags", "chapters"),
             )
             for book in result:
                 list(book["authors"])
@@ -366,7 +366,7 @@ class TestPrefetchValuesEdgeCases:
 
         qs = PrefetchValuesQuerySet(model=Book)
         result = list(
-            qs.filter(price__gt=Decimal("25.00")).prefetch_related("authors").values("title", "price", "authors")
+            qs.filter(price__gt=Decimal("25.00")).prefetch_related("authors").values("title", "price", "authors"),
         )
 
         # Only books with price > 25.00
@@ -534,8 +534,13 @@ class TestPrefetchValuesMixedRelations:
         qs = PrefetchValuesQuerySet(model=Book)
         result = list(
             qs.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").values(
-                "title", "authors", "tags", "chapters", "reviews", "publisher"
-            )
+                "title",
+                "authors",
+                "tags",
+                "chapters",
+                "reviews",
+                "publisher",
+            ),
         )
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
