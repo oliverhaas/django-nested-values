@@ -29,16 +29,16 @@ class Book(models.Model):
 books = Book.objects.prefetch_related("authors").values()
 # [{"id": 1, "title": "Book 1"}, ...]  # No authors!
 
-# With django-prefetch-values - prefetched data is included
-books = Book.objects.prefetch_related("authors").values()
+# With django-prefetch-values - use values_nested() instead
+books = Book.objects.prefetch_related("authors").values_nested()
 # [{"id": 1, "title": "Book 1", "authors": [{"id": 1, "name": "Author 1"}, ...]}, ...]
 ```
 
 ## Supported Relations
 
-- **ManyToMany**: `Book.objects.prefetch_related("authors").values()`
-- **Reverse ForeignKey**: `Author.objects.prefetch_related("books").values()`
-- **Nested**: `Publisher.objects.prefetch_related(Prefetch("books", queryset=Book.objects.prefetch_related("authors"))).values()`
+- **ManyToMany**: `Book.objects.prefetch_related("authors").values_nested()`
+- **Reverse ForeignKey**: `Author.objects.prefetch_related("books").values_nested()`
+- **Nested**: `Publisher.objects.prefetch_related(Prefetch("books", queryset=Book.objects.prefetch_related("authors"))).values_nested()`
 
 ## Prefetch Objects
 
@@ -48,12 +48,12 @@ from django.db.models import Prefetch
 # Filter prefetched data
 Book.objects.prefetch_related(
     Prefetch("authors", queryset=Author.objects.filter(name__startswith="A"))
-).values()
+).values_nested()
 
 # Custom to_attr
 Book.objects.prefetch_related(
     Prefetch("authors", to_attr="author_list")
-).values()
+).values_nested()
 # [{"id": 1, "title": "Book 1", "author_list": [...]}, ...]
 ```
 
@@ -71,7 +71,7 @@ from ninja import NinjaAPI
 
 @api.get("/books", response=list[BookSchema])
 def list_books(request):
-    return list(Book.objects.prefetch_related("authors").values())
+    return list(Book.objects.prefetch_related("authors").values_nested())
 ```
 
 ## Benchmark

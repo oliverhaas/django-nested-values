@@ -3,14 +3,12 @@
 [![PyPI version](https://img.shields.io/pypi/v/django-prefetch-values.svg)](https://pypi.org/project/django-prefetch-values/)
 [![CI](https://github.com/oliverhaas/django-prefetch-values/actions/workflows/ci.yml/badge.svg)](https://github.com/oliverhaas/django-prefetch-values/actions/workflows/ci.yml)
 
-An experimental package exploring how to combine `.prefetch_related()` with `.values()` in Django ORM, mainly so this can be used in some test cases to evaluate whether this feature is worth the effort.
-
-This explores a solution to [Django ticket #26565](https://code.djangoproject.com/ticket/26565).
+An experimental package that adds `.values_nested()` to Django querysets, returning nested dictionaries with prefetched relations included.
 
 ## Quick Example
 
 ```python
-Book.objects.prefetch_related("authors").values("title", "authors")
+Book.objects.prefetch_related("authors").values_nested("title", "authors")
 # [{"title": "...", "authors": [{"id": 1, "name": "..."}, ...]}]
 ```
 

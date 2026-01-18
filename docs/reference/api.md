@@ -2,7 +2,7 @@
 
 ## PrefetchValuesQuerySet
 
-A custom QuerySet that enables `.prefetch_related().values()` to return nested dictionaries.
+A custom QuerySet that adds `.values_nested()` to return nested dictionaries with prefetched relations.
 
 Inherits from `django.db.models.QuerySet`.
 
@@ -15,21 +15,17 @@ class MyModel(models.Model):
     objects = PrefetchValuesQuerySet.as_manager()
 ```
 
-### values(*fields, **expressions)
+### values_nested(*fields, **expressions)
 
 Returns dictionaries with prefetched relations included as nested lists.
 
 ```python
-Book.objects.prefetch_related("authors").values()
+Book.objects.prefetch_related("authors").values_nested()
 # [{"id": 1, "title": "...", "authors": [{"id": 1, "name": "..."}, ...]}, ...]
 
-Book.objects.prefetch_related("authors").values("id", "title")
+Book.objects.prefetch_related("authors").values_nested("id", "title")
 # [{"id": 1, "title": "...", "authors": [...]}, ...]
 ```
-
-### values_list(*fields, flat=False, named=False)
-
-Returns tuples with prefetched relations included.
 
 ## Supported Relations
 
@@ -44,12 +40,12 @@ Same query count as standard Django prefetching: one query for the main model pl
 
 ```python
 # 2 queries: books + authors
-Book.objects.prefetch_related("authors").values()
+Book.objects.prefetch_related("authors").values_nested()
 
 # 3 queries: publishers + books + authors
 Publisher.objects.prefetch_related(
     Prefetch("books", queryset=Book.objects.prefetch_related("authors"))
-).values()
+).values_nested()
 ```
 
 The performance benefit comes from avoiding Django model instantiation.

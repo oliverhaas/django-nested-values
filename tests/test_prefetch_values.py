@@ -1,6 +1,6 @@
-"""TDD tests for prefetch_related().values() functionality.
+"""TDD tests for prefetch_related().values_nested() functionality.
 
-These tests define the expected behavior of combining prefetch_related() with values().
+These tests define the expected behavior of combining prefetch_related() with values_nested().
 The implementation should make these tests pass.
 """
 
@@ -83,19 +83,22 @@ def sample_data(db):
 
 
 class TestPrefetchValuesBasic:
-    """Basic tests for prefetch_related().values() functionality."""
+    """Basic tests for prefetch_related().values_nested() functionality."""
 
-    def test_values_without_prefetch_works_normally(self, sample_data):
-        """values() without prefetch_related should work as normal Django."""
-        result = list(Book.objects.values("title", "isbn"))
+    def test_values_nested_without_prefetch_works_normally(self, sample_data):
+        """values_nested() without prefetch_related should work as normal Django."""
+        from django_prefetch_values import PrefetchValuesQuerySet
+
+        qs = PrefetchValuesQuerySet(model=Book)
+        result = list(qs.values_nested("title", "isbn"))
 
         assert len(result) == 3
         assert all(isinstance(r, dict) for r in result)
         assert all("title" in r and "isbn" in r for r in result)
         assert {"title": "Django for Beginners", "isbn": "1234567890123"} in result
 
-    def test_prefetch_related_without_values_works_normally(self, sample_data):
-        """prefetch_related() without values() should work as normal Django."""
+    def test_prefetch_related_without_values_nested_works_normally(self, sample_data):
+        """prefetch_related() without values_nested() should work as normal Django."""
         books = list(Book.objects.prefetch_related("authors"))
 
         assert len(books) == 3
@@ -105,15 +108,15 @@ class TestPrefetchValuesBasic:
 
 
 class TestPrefetchValuesManyToMany:
-    """Tests for ManyToMany relations with prefetch_related().values()."""
+    """Tests for ManyToMany relations with prefetch_related().values_nested()."""
 
     def test_prefetch_m2m_with_values_returns_nested_list(self, sample_data):
-        """Prefetching a M2M relation with values() should return nested list of dicts."""
+        """Prefetching a M2M relation with values_nested() should return nested list of dicts."""
         from django_prefetch_values import PrefetchValuesQuerySet
 
         # Create a queryset using our custom class
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
 
         assert len(result) == 3
 
@@ -135,7 +138,7 @@ class TestPrefetchValuesManyToMany:
 
         qs = PrefetchValuesQuerySet(model=Book)
         # Only get author name, not email
-        result = list(qs.prefetch_related("authors").values("title", "authors__name"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors__name"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -149,7 +152,7 @@ class TestPrefetchValuesManyToMany:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors", "tags").values("title", "authors", "tags"))
+        result = list(qs.prefetch_related("authors", "tags").values_nested("title", "authors", "tags"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -170,7 +173,7 @@ class TestPrefetchValuesReverseForeignKey:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("chapters").values("title", "chapters"))
+        result = list(qs.prefetch_related("chapters").values_nested("title", "chapters"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -187,7 +190,7 @@ class TestPrefetchValuesReverseForeignKey:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("chapters").values("title", "chapters__title", "chapters__number"))
+        result = list(qs.prefetch_related("chapters").values_nested("title", "chapters__title", "chapters__number"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -201,7 +204,7 @@ class TestPrefetchValuesReverseForeignKey:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("chapters").values("title", "chapters"))
+        result = list(qs.prefetch_related("chapters").values_nested("title", "chapters"))
 
         web_book = next(r for r in result if r["title"] == "Web Development Basics")
 
@@ -216,7 +219,7 @@ class TestPrefetchValuesForeignKey:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("publisher").values("title", "publisher"))
+        result = list(qs.prefetch_related("publisher").values_nested("title", "publisher"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -231,7 +234,7 @@ class TestPrefetchValuesForeignKey:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("publisher").values("title", "publisher__name"))
+        result = list(qs.prefetch_related("publisher").values_nested("title", "publisher__name"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -247,7 +250,7 @@ class TestPrefetchValuesNestedRelations:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Author)
-        result = list(qs.prefetch_related("books__chapters").values("name", "books"))
+        result = list(qs.prefetch_related("books__chapters").values_nested("name", "books"))
 
         john = next(r for r in result if r["name"] == "John Doe")
 
@@ -265,14 +268,14 @@ class TestPrefetchValuesQueryCount:
     """Tests to verify prefetching actually reduces query count."""
 
     def test_prefetch_reduces_queries(self, sample_data, django_assert_num_queries):
-        """Using prefetch_related().values() should use minimal queries."""
+        """Using prefetch_related().values_nested() should use minimal queries."""
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
 
         # Should be 2 queries: one for books, one for authors (prefetched)
         with django_assert_num_queries(2):
-            result = list(qs.prefetch_related("authors").values("title", "authors"))
+            result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
             # Force evaluation of all authors
             for book in result:
                 list(book["authors"])
@@ -286,7 +289,12 @@ class TestPrefetchValuesQueryCount:
         # Should be 4 queries: books + authors + tags + chapters
         with django_assert_num_queries(4):
             result = list(
-                qs.prefetch_related("authors", "tags", "chapters").values("title", "authors", "tags", "chapters"),
+                qs.prefetch_related("authors", "tags", "chapters").values_nested(
+                    "title",
+                    "authors",
+                    "tags",
+                    "chapters",
+                ),
             )
             for book in result:
                 list(book["authors"])
@@ -308,7 +316,7 @@ class TestPrefetchValuesWithPrefetchObject:
         # Only prefetch chapters with page_count > 30
         prefetch = Prefetch("chapters", queryset=Chapter.objects.filter(page_count__gt=30))
 
-        result = list(qs.prefetch_related(prefetch).values("title", "chapters"))
+        result = list(qs.prefetch_related(prefetch).values_nested("title", "chapters"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -327,7 +335,7 @@ class TestPrefetchValuesWithPrefetchObject:
 
         prefetch = Prefetch("chapters", queryset=Chapter.objects.filter(number=1), to_attr="first_chapter")
 
-        result = list(qs.prefetch_related(prefetch).values("title", "first_chapter"))
+        result = list(qs.prefetch_related(prefetch).values_nested("title", "first_chapter"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -346,19 +354,19 @@ class TestPrefetchValuesEdgeCases:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
 
         assert result == []
 
     def test_values_with_non_prefetched_relation_raises_error(self, sample_data):
-        """Requesting a relation in values() without prefetching should raise error."""
+        """Requesting a relation in values_nested() without prefetching should raise error."""
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
 
-        # authors is in values() but not prefetched - should raise
+        # authors is in values_nested() but not prefetched - should raise
         with pytest.raises(ValueError, match="not prefetched"):
-            list(qs.values("title", "authors"))
+            list(qs.values_nested("title", "authors"))
 
     def test_chaining_filter_with_prefetch_values(self, sample_data):
         """Should work with filter() in the chain."""
@@ -366,7 +374,9 @@ class TestPrefetchValuesEdgeCases:
 
         qs = PrefetchValuesQuerySet(model=Book)
         result = list(
-            qs.filter(price__gt=Decimal("25.00")).prefetch_related("authors").values("title", "price", "authors"),
+            qs.filter(price__gt=Decimal("25.00"))
+            .prefetch_related("authors")
+            .values_nested("title", "price", "authors"),
         )
 
         # Only books with price > 25.00
@@ -379,17 +389,17 @@ class TestPrefetchValuesEdgeCases:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.order_by("-price").prefetch_related("authors").values("title", "price", "authors"))
+        result = list(qs.order_by("-price").prefetch_related("authors").values_nested("title", "price", "authors"))
 
         prices = [r["price"] for r in result]
         assert prices == sorted(prices, reverse=True)
 
     def test_slicing_queryset(self, sample_data):
-        """Slicing should work with prefetch_related().values()."""
+        """Slicing should work with prefetch_related().values_nested()."""
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.order_by("title").prefetch_related("authors").values("title", "authors")[:2])
+        result = list(qs.order_by("title").prefetch_related("authors").values_nested("title", "authors")[:2])
 
         assert len(result) == 2
         # First two books alphabetically
@@ -397,11 +407,11 @@ class TestPrefetchValuesEdgeCases:
         assert result[1]["title"] == "Django for Beginners"
 
     def test_single_object_with_first(self, sample_data):
-        """first() should work with prefetch_related().values()."""
+        """first() should work with prefetch_related().values_nested()."""
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = qs.order_by("title").prefetch_related("authors").values("title", "authors").first()
+        result = qs.order_by("title").prefetch_related("authors").values_nested("title", "authors").first()
 
         assert result is not None
         assert result["title"] == "Advanced Python"
@@ -428,7 +438,7 @@ class TestPrefetchValuesReverseManyToMany:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Author)
-        result = list(qs.prefetch_related("books").values("name", "books"))
+        result = list(qs.prefetch_related("books").values_nested("name", "books"))
 
         john = next(r for r in result if r["name"] == "John Doe")
 
@@ -444,7 +454,7 @@ class TestPrefetchValuesReverseManyToMany:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Author)
-        result = list(qs.prefetch_related("books").values("name", "books__title"))
+        result = list(qs.prefetch_related("books").values_nested("name", "books__title"))
 
         john = next(r for r in result if r["name"] == "John Doe")
 
@@ -462,7 +472,7 @@ class TestPrefetchValuesDataTypes:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "price", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "price", "authors"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
         assert isinstance(django_book["price"], Decimal)
@@ -473,7 +483,7 @@ class TestPrefetchValuesDataTypes:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "published_date", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "published_date", "authors"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
         assert isinstance(django_book["published_date"], date)
@@ -484,7 +494,7 @@ class TestPrefetchValuesDataTypes:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("chapters").values("title", "chapters"))
+        result = list(qs.prefetch_related("chapters").values_nested("title", "chapters"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
         for chapter in django_book["chapters"]:
@@ -500,7 +510,7 @@ class TestPrefetchValuesMixedRelations:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors", "publisher").values("title", "authors", "publisher"))
+        result = list(qs.prefetch_related("authors", "publisher").values_nested("title", "authors", "publisher"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -517,7 +527,7 @@ class TestPrefetchValuesMixedRelations:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors", "chapters").values("title", "authors", "chapters"))
+        result = list(qs.prefetch_related("authors", "chapters").values_nested("title", "authors", "chapters"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
 
@@ -533,7 +543,7 @@ class TestPrefetchValuesMixedRelations:
 
         qs = PrefetchValuesQuerySet(model=Book)
         result = list(
-            qs.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").values(
+            qs.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").values_nested(
                 "title",
                 "authors",
                 "tags",
@@ -565,7 +575,7 @@ class TestPrefetchValuesWithFilters:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.filter(publisher__country="USA").prefetch_related("authors").values("title", "authors"))
+        result = list(qs.filter(publisher__country="USA").prefetch_related("authors").values_nested("title", "authors"))
 
         # Only books from USA publisher
         assert len(result) == 2
@@ -577,7 +587,7 @@ class TestPrefetchValuesWithFilters:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.filter(authors__name="John Doe").prefetch_related("authors").values("title", "authors"))
+        result = list(qs.filter(authors__name="John Doe").prefetch_related("authors").values_nested("title", "authors"))
 
         # Books where John Doe is an author
         assert len(result) == 2
@@ -589,7 +599,7 @@ class TestPrefetchValuesWithFilters:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.exclude(title="Advanced Python").prefetch_related("authors").values("title", "authors"))
+        result = list(qs.exclude(title="Advanced Python").prefetch_related("authors").values_nested("title", "authors"))
 
         assert len(result) == 2
         titles = {r["title"] for r in result}
@@ -604,7 +614,7 @@ class TestPrefetchValuesIdField:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("id", "title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("id", "title", "authors"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
         assert "id" in django_book
@@ -615,7 +625,7 @@ class TestPrefetchValuesIdField:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
         assert "id" not in django_book
@@ -625,7 +635,7 @@ class TestPrefetchValuesIdField:
         from django_prefetch_values import PrefetchValuesQuerySet
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
 
         django_book = next(r for r in result if r["title"] == "Django for Beginners")
         # When no specific fields requested, all fields including id are returned
@@ -650,7 +660,7 @@ class TestPrefetchValuesEmptyRelations:
         )
 
         qs = PrefetchValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values("title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
 
         orphan = next(r for r in result if r["title"] == "Orphan Book")
         assert orphan["authors"] == []
@@ -662,7 +672,7 @@ class TestPrefetchValuesEmptyRelations:
         Author.objects.create(name="Lonely Author", email="lonely@example.com")
 
         qs = PrefetchValuesQuerySet(model=Author)
-        result = list(qs.prefetch_related("books").values("name", "books"))
+        result = list(qs.prefetch_related("books").values_nested("name", "books"))
 
         lonely = next(r for r in result if r["name"] == "Lonely Author")
         assert lonely["books"] == []
@@ -686,7 +696,7 @@ class TestPrefetchValuesWithManager:
         manager._db = None
 
         qs = manager.get_queryset()
-        result = list(qs.prefetch_related("authors").values("title", "authors"))
+        result = list(qs.prefetch_related("authors").values_nested("title", "authors"))
 
         assert len(result) == 3
         django_book = next(r for r in result if r["title"] == "Django for Beginners")

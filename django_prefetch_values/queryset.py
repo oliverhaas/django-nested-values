@@ -1,4 +1,4 @@
-"""Custom QuerySet that enables .prefetch_related().values() functionality."""
+"""Custom QuerySet that adds .values_nested() for nested prefetch dictionaries."""
 
 from __future__ import annotations
 
@@ -19,11 +19,10 @@ class PrefetchValuesQuerySet(QuerySet):
     _prefetch_values_fields: tuple[str, ...]
     _prefetch_values_prefetch_fields: dict[str, list[str]]
     _prefetch_values_nested: dict[str, list[str]]
-    """QuerySet that supports combining prefetch_related() with values().
+    """QuerySet that adds .values_nested() for nested prefetch dictionaries.
 
-    This QuerySet override intercepts .values() calls when prefetch_related()
-    has been used, and performs separate .values() queries for each prefetched
-    relation, then joins them in Python.
+    This QuerySet adds the values_nested() method that returns nested dictionaries
+    with prefetched relations included as lists of dicts.
 
     Usage:
         class BookManager(models.Manager.from_queryset(PrefetchValuesQuerySet)):
@@ -33,15 +32,15 @@ class PrefetchValuesQuerySet(QuerySet):
             objects = BookManager()
 
         # Now you can use:
-        Book.objects.prefetch_related('authors').values('title', 'authors')
+        Book.objects.prefetch_related('authors').values_nested('title', 'authors')
         # Returns: [{'title': '...', 'authors': [{'name': '...', 'email': '...'}, ...]}, ...]
     """
 
-    def values(self, *fields: str | Combinable, **expressions: Any) -> Self:
-        """Override values() to support prefetch_related() lookups in the fields.
+    def values_nested(self, *fields: str | Combinable, **expressions: Any) -> Self:
+        """Return nested dictionaries with prefetched relations included.
 
-        If any field references a prefetched relation, we intercept the call and
-        handle the prefetching manually using .values() on each relation.
+        Unlike standard .values() which returns flat dicts, this method returns
+        nested structures where prefetched relations appear as lists of dicts.
         """
         # Parse fields to identify prefetch-related fields
         prefetch_lookups = self._prefetch_related_lookups  # type: ignore[attr-defined]

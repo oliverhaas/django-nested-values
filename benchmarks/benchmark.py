@@ -1,4 +1,4 @@
-"""Benchmark comparing normal prefetch_related vs prefetch_related().values()."""
+"""Benchmark comparing normal prefetch_related vs prefetch_related().values_nested()."""
 
 from __future__ import annotations
 
@@ -176,11 +176,11 @@ def benchmark_normal_prefetch():
     return result
 
 
-def benchmark_prefetch_values():
-    """Benchmark: Fetch with prefetch_related().values() - our new approach."""
+def benchmark_prefetch_values_nested():
+    """Benchmark: Fetch with prefetch_related().values_nested() - our new approach."""
     qs = PrefetchValuesQuerySet(model=Book)
     result = list(
-        qs.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").values(
+        qs.prefetch_related("authors", "tags", "chapters", "reviews", "publisher").values_nested(
             "id",
             "title",
             "isbn",
@@ -261,7 +261,7 @@ def main():
     # Warm up
     print("Warming up...")
     benchmark_normal_prefetch()
-    benchmark_prefetch_values()
+    benchmark_prefetch_values_nested()
     benchmark_values_only()
 
     print("\nRunning benchmarks...\n")
@@ -271,8 +271,8 @@ def main():
     # Benchmark 1: Normal prefetch + manual dict conversion
     results.append(run_benchmark("Normal prefetch + manual dict", benchmark_normal_prefetch))
 
-    # Benchmark 2: Our prefetch_related().values()
-    results.append(run_benchmark("prefetch_related().values()", benchmark_prefetch_values))
+    # Benchmark 2: Our prefetch_related().values_nested()
+    results.append(run_benchmark("prefetch_related().values_nested()", benchmark_prefetch_values_nested))
 
     # Benchmark 3: Standard values() (for reference, but loses M2M/reverse FK)
     results.append(run_benchmark("Standard values() (no M2M)", benchmark_values_only))
@@ -299,10 +299,10 @@ def main():
 
     speedup = normal["mean_time"] / prefetch_values["mean_time"]
     print(
-        f"prefetch_related().values() is {speedup:.2f}x {'faster' if speedup > 1 else 'slower'} than normal prefetch + manual dict",
+        f"prefetch_related().values_nested() is {speedup:.2f}x {'faster' if speedup > 1 else 'slower'} than normal prefetch + manual dict",
     )
     print(f"  - Normal: {normal['mean_time'] * 1000:.2f}ms")
-    print(f"  - values(): {prefetch_values['mean_time'] * 1000:.2f}ms")
+    print(f"  - values_nested(): {prefetch_values['mean_time'] * 1000:.2f}ms")
     print(f"  - Difference: {(normal['mean_time'] - prefetch_values['mean_time']) * 1000:.2f}ms")
 
     # Memory comparison (rough)
