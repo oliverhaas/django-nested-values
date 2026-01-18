@@ -545,21 +545,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#valuesfields-expressions" class="md-nav__link">
+  <a href="#values_nestedfields-expressions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        values(fields, *expressions)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#values_listfields-flatfalse-namedfalse" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        values_list(*fields, flat=False, named=False)
+        values_nested(fields, *expressions)
       
     </span>
   </a>
@@ -687,21 +676,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#valuesfields-expressions" class="md-nav__link">
+  <a href="#values_nestedfields-expressions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        values(fields, *expressions)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#values_listfields-flatfalse-namedfalse" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        values_list(*fields, flat=False, named=False)
+        values_nested(fields, *expressions)
       
     </span>
   </a>
@@ -757,7 +735,7 @@
 
 <h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
 <h2 id="prefetchvaluesqueryset">PrefetchValuesQuerySet<a class="headerlink" href="#prefetchvaluesqueryset" title="Permanent link">&para;</a></h2>
-<p>A custom QuerySet that enables <code>.prefetch_related().values()</code> to return nested dictionaries.</p>
+<p>A custom QuerySet that adds <code>.values_nested()</code> to return nested dictionaries with prefetched relations.</p>
 <p>Inherits from <code>django.db.models.QuerySet</code>.</p>
 <h3 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django_prefetch_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">PrefetchValuesQuerySet</span>
@@ -765,16 +743,14 @@
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyModel</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">objects</span> <span class="o">=</span> <span class="n">PrefetchValuesQuerySet</span><span class="o">.</span><span class="n">as_manager</span><span class="p">()</span>
 </code></pre></div>
-<h3 id="valuesfields-expressions">values(<em>fields, </em>*expressions)<a class="headerlink" href="#valuesfields-expressions" title="Permanent link">&para;</a></h3>
+<h3 id="values_nestedfields-expressions">values_nested(<em>fields, </em>*expressions)<a class="headerlink" href="#values_nestedfields-expressions" title="Permanent link">&para;</a></h3>
 <p>Returns dictionaries with prefetched relations included as nested lists.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># [{&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;authors&quot;: [{&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;}, ...]}, ...]</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">)</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># [{&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;authors&quot;: [...]}, ...]</span>
 </code></pre></div>
-<h3 id="values_listfields-flatfalse-namedfalse">values_list(*fields, flat=False, named=False)<a class="headerlink" href="#values_listfields-flatfalse-namedfalse" title="Permanent link">&para;</a></h3>
-<p>Returns tuples with prefetched relations included.</p>
 <h2 id="supported-relations">Supported Relations<a class="headerlink" href="#supported-relations" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>ManyToManyField</strong></li>
@@ -785,12 +761,12 @@
 <h2 id="query-efficiency">Query Efficiency<a class="headerlink" href="#query-efficiency" title="Permanent link">&para;</a></h2>
 <p>Same query count as standard Django prefetching: one query for the main model plus one per prefetch.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 2 queries: books + authors</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 3 queries: publishers + books + authors</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">Publisher</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;books&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">))</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
 </code></pre></div>
 <p>The performance benefit comes from avoiding Django model instantiation.</p>
 
