@@ -200,7 +200,7 @@ wheels = [
 
 [[package]]
 name = "django-prefetch-values"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
@@ -228,7 +228,7 @@ requires-dist = [{ name = "django", specifier = ">=5.2" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "django-stubs", specifier = ">=5.2.0" },
+    { name = "django-stubs", specifier = "==5.2.8" },
     { name = "pre-commit", specifier = "==4.5.1" },
     { name = "pytest", specifier = "==9.0.2" },
     { name = "pytest-cov", specifier = "==7.0.0" },
