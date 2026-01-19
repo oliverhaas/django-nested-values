@@ -368,6 +368,40 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         # Return all concrete fields
         return [f.name for f in related_model._meta.concrete_fields]
 
+    def _extract_fk_data_from_main_results(
+        self,
+        main_results: list[dict],
+        relation_name: str,
+        related_model: type[Model],
+    ) -> dict[Any, dict]:
+        """Extract FK relation data that was already fetched via select_related.
+
+        When a FK is fetched via select_related, the data is already in main_results
+        with keys like "relation__field". This extracts that data into a dict
+        keyed by the related object's PK.
+        """
+        related_pk_name = related_model._meta.pk.name
+        prefix = f"{relation_name}__"
+
+        result: dict[Any, dict] = {}
+
+        for row in main_results:
+            # Extract all fields with the relation prefix
+            related_dict: dict[str, Any] = {}
+            for key, value in row.items():
+                if key.startswith(prefix):
+                    field_name = key[len(prefix) :]
+                    # Skip nested relations (contain another __)
+                    if "__" not in field_name:
+                        related_dict[field_name] = value
+
+            # Get the related object's PK
+            related_pk = related_dict.get(related_pk_name)
+            if related_pk is not None and related_pk not in result:
+                result[related_pk] = related_dict
+
+        return result
+
     def _fetch_m2m_values(
         self,
         field: ManyToManyField,
@@ -493,18 +527,28 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         if not fk_values:
             return dict.fromkeys(parent_pks)
 
-        fetch_fields = self._get_fields_for_relation(related_model, custom_qs)
-        related_pk_name = related_model._meta.pk.name
-        if related_pk_name not in fetch_fields:
-            fetch_fields = [related_pk_name, *fetch_fields]
-
-        # Build queryset
-        if custom_qs is not None:
-            related_qs = custom_qs.filter(pk__in=fk_values)
+        # Check if this relation was already fetched via select_related
+        # If so, we can extract the data from main_results instead of querying again
+        select_related_fields = self._get_select_related_fields()
+        if relation_name in select_related_fields and custom_qs is None:
+            # Data already in main_results from JOIN - extract it directly
+            related_data = self._extract_fk_data_from_main_results(
+                main_results,
+                relation_name,
+                related_model,
+            )
         else:
-            related_qs = related_model._default_manager.filter(pk__in=fk_values)
+            # Not select_related or has custom queryset - need to query
+            fetch_fields = self._get_fields_for_relation(related_model, custom_qs)
+            if related_pk_name not in fetch_fields:
+                fetch_fields = [related_pk_name, *fetch_fields]
 
-        related_data = {r[related_pk_name]: dict(r) for r in related_qs.values(*fetch_fields)}
+            if custom_qs is not None:
+                related_qs = custom_qs.filter(pk__in=fk_values)
+            else:
+                related_qs = related_model._default_manager.filter(pk__in=fk_values)
+
+            related_data = {r[related_pk_name]: dict(r) for r in related_qs.values(*fetch_fields)}
 
         # Handle nested relations
         if nested_relations:

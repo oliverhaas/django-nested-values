@@ -807,3 +807,51 @@ class TestMixin:
         assert len(result) == 2
         titles = {r["title"] for r in result}
         assert titles == {"Django for Beginners", "Advanced Python"}
+
+
+class TestQueryCount:
+    """Test that select_related data is reused and not re-queried."""
+
+    def test_select_related_fk_not_requeried_for_prefetch(self, sample_data, django_assert_num_queries):
+        """FK fetched via select_related should not be queried again for nested prefetch."""
+        from django_nested_values import NestedValuesQuerySet
+
+        qs = NestedValuesQuerySet(model=Book)
+
+        # select_related("publisher") + prefetch_related("publisher__books")
+        # Should be:
+        # 1. Main query with JOIN for publisher
+        # 2. Books query for publisher__books
+        # NOT 3 queries (no extra query for publisher)
+        with django_assert_num_queries(2):
+            result = list(
+                qs.select_related("publisher").prefetch_related("publisher__books").values_nested(),
+            )
+
+        # Verify data is correct
+        assert len(result) == 3
+        django_book = next(r for r in result if r["title"] == "Django for Beginners")
+        assert django_book["publisher"]["name"] == "Tech Books Inc"
+        assert "books" in django_book["publisher"]
+
+    def test_total_query_count_with_select_and_prefetch(self, sample_data, django_assert_num_queries):
+        """Verify total query count is optimal when combining select_related + prefetch_related."""
+        from django_nested_values import NestedValuesQuerySet
+
+        qs = NestedValuesQuerySet(model=Book)
+
+        # Expected queries:
+        # 1. Main query with JOIN for publisher
+        # 2. Authors M2M through table + author records (1 query)
+        # 3. Chapters reverse FK (1 query)
+        # Total: 3 queries
+        with django_assert_num_queries(3):
+            result = list(
+                qs.select_related("publisher").prefetch_related("authors", "chapters").values_nested(),
+            )
+
+        assert len(result) == 3
+        django_book = next(r for r in result if r["title"] == "Django for Beginners")
+        assert django_book["publisher"]["name"] == "Tech Books Inc"
+        assert len(django_book["authors"]) == 2
+        assert len(django_book["chapters"]) == 3
