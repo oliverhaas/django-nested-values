@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from django.db.models import Prefetch
+
 from django_nested_values import NestedValuesQuerySet
-from tests.testapp.models import Book, Chapter
+from tests.testapp.models import Author, Book, Chapter
 
 
 class TestQueryCount:
@@ -114,3 +116,106 @@ class TestQueryCount:
         assert intro_chapter["book"]["publisher"]["name"] == "Tech Books Inc"
         assert "authors" in intro_chapter["book"]
         assert len(intro_chapter["book"]["authors"]) == 2
+
+
+class TestPrefetchSelectRelatedOptimization:
+    """Tests for respecting select_related on Prefetch querysets."""
+
+    def test_prefetch_with_select_related_uses_join(self, sample_data, django_assert_num_queries):
+        """Prefetch queryset with select_related should JOIN, not make extra queries for FK.
+
+        When using Prefetch with a queryset that has select_related, Django fetches
+        the FK data via JOIN in a single query. We should extract that data from
+        the same query result instead of making a separate query for Publisher.
+
+        Scenario: Author -> Books (M2M) -> Publisher (FK on Book)
+        Using Prefetch('books', queryset=Book.objects.select_related('publisher'))
+
+        Note: Our implementation queries M2M through table separately, so we get:
+        1. Authors
+        2. M2M through table (author_id -> book_id)
+        3. Books JOIN Publisher (via select_related)
+        """
+        qs = NestedValuesQuerySet(model=Author)
+
+        # 3 queries due to separate through table query (architectural difference)
+        # The key optimization is that Publisher comes from the JOIN, not a 4th query
+        with django_assert_num_queries(3):
+            result = list(
+                qs.prefetch_related(
+                    Prefetch("books", queryset=Book.objects.select_related("publisher")),
+                ).values_nested(),
+            )
+
+        # Verify data structure
+        john = next(r for r in result if r["name"] == "John Doe")
+        assert len(john["books"]) == 2
+
+        # Publisher should be nested in books (extracted from the JOIN)
+        for book in john["books"]:
+            assert "publisher" in book, "Publisher should be included from select_related"
+            assert isinstance(book["publisher"], dict)
+            assert "name" in book["publisher"]
+
+    def test_prefetch_reverse_fk_with_select_related(self, sample_data, django_assert_num_queries):
+        """Prefetch reverse FK with select_related should use JOIN.
+
+        Scenario: Book -> Chapters (reverse FK) -> Book (FK on Chapter, via select_related)
+        The Chapter.book FK is circular here, but tests the pattern.
+        """
+        qs = NestedValuesQuerySet(model=Book)
+
+        # Using select_related on the Prefetch queryset
+        # Should be 2 queries:
+        # 1. Books
+        # 2. Chapters (book FK would be JOINed if we selected it, but it's circular)
+        with django_assert_num_queries(2):
+            result = list(
+                qs.filter(title="Django for Beginners")
+                .prefetch_related(
+                    Prefetch("chapters", queryset=Chapter.objects.select_related("book")),
+                )
+                .values_nested(),
+            )
+
+        assert len(result) == 1
+        book = result[0]
+        assert len(book["chapters"]) == 3
+
+        # Each chapter should have its book nested (from select_related)
+        for chapter in book["chapters"]:
+            assert "book" in chapter, "Book should be included from select_related"
+            assert isinstance(chapter["book"], dict)
+            assert chapter["book"]["title"] == "Django for Beginners"
+
+    def test_prefetch_with_nested_select_related(self, sample_data, django_assert_num_queries):
+        """Prefetch with nested select_related (book__publisher) should use single JOIN.
+
+        Scenario: Author -> Books (M2M) -> Publisher (FK) via nested select_related
+
+        Note: Our implementation queries M2M through table separately, so we get:
+        1. Authors
+        2. M2M through table (author_id -> book_id)
+        3. Books JOIN Publisher (nested select_related)
+        """
+        qs = NestedValuesQuerySet(model=Author)
+
+        # 3 queries due to separate through table query (architectural difference)
+        # The key optimization is that Publisher comes from the JOIN, not a 4th query
+        with django_assert_num_queries(3):
+            result = list(
+                qs.filter(name="John Doe")
+                .prefetch_related(
+                    Prefetch("books", queryset=Book.objects.select_related("publisher")),
+                )
+                .values_nested(),
+            )
+
+        assert len(result) == 1
+        john = result[0]
+        assert len(john["books"]) == 2
+
+        # Verify nested publisher data is present
+        for book in john["books"]:
+            assert "publisher" in book
+            assert book["publisher"]["name"] in ["Tech Books Inc", "Science Press"]
