@@ -10,20 +10,25 @@ from django.db.models import ForeignKey, ManyToManyField, ManyToManyRel, ManyToO
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    # For type checking, pretend the mixin inherits from QuerySet
+    _MixinBase = QuerySet
+else:
+    _MixinBase = object
 
-class NestedValuesQuerySet(QuerySet):
-    """QuerySet that adds .values_nested() for nested dictionaries.
 
-    This QuerySet adds the values_nested() method that returns nested dictionaries
-    with related objects included as dicts (for FK) or lists of dicts (for M2M/reverse FK).
+class NestedValuesQuerySetMixin(_MixinBase):
+    """Mixin that adds .values_nested() to any QuerySet.
 
-    Usage:
+    Use this mixin to add values_nested() to your custom QuerySet classes:
+
+        class MyQuerySet(NestedValuesQuerySetMixin, QuerySet):
+            def my_custom_method(self):
+                ...
+
         class Book(models.Model):
-            objects = NestedValuesQuerySet.as_manager()
+            objects = MyQuerySet.as_manager()
 
-        # Use standard Django patterns:
-        Book.objects.only("title").select_related("publisher").prefetch_related("authors").values_nested()
-        # Returns: [{'id': 1, 'title': '...', 'publisher': {...}, 'authors': [...]}, ...]
+    Or use the pre-built NestedValuesQuerySet if you don't need a custom QuerySet.
     """
 
     # Internal flag to track if values_nested() was called
@@ -782,4 +787,25 @@ class NestedValuesQuerySet(QuerySet):
     def __iter__(self) -> Iterator[dict[str, Any]]:
         """Iterate over the queryset."""
         self._fetch_all()
-        yield from self._result_cache  # type: ignore[misc]
+        yield from self._result_cache  # type: ignore[misc]  # _fetch_all ensures this is not None
+
+
+class NestedValuesQuerySet(NestedValuesQuerySetMixin, QuerySet):
+    """QuerySet that adds .values_nested() for nested dictionaries.
+
+    This is a ready-to-use QuerySet combining NestedValuesQuerySetMixin with Django's QuerySet.
+
+    Usage:
+        class Book(models.Model):
+            objects = NestedValuesQuerySet.as_manager()
+
+        # Use standard Django patterns:
+        Book.objects.only("title").select_related("publisher").prefetch_related("authors").values_nested()
+        # Returns: [{'id': 1, 'title': '...', 'publisher': {...}, 'authors': [...]}, ...]
+
+    If you have a custom QuerySet, use NestedValuesQuerySetMixin instead:
+
+        class MyQuerySet(NestedValuesQuerySetMixin, QuerySet):
+            def my_custom_method(self):
+                ...
+    """

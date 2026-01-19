@@ -2,9 +2,9 @@
 
 ## NestedValuesQuerySet
 
-A custom QuerySet that adds `.values_nested()` to return nested dictionaries with related objects.
+A ready-to-use QuerySet that adds `.values_nested()` to return nested dictionaries with related objects.
 
-Inherits from `django.db.models.QuerySet`.
+Inherits from `NestedValuesQuerySetMixin` and `django.db.models.QuerySet`.
 
 ### Setup
 
@@ -13,6 +13,32 @@ from django_nested_values import NestedValuesQuerySet
 
 class MyModel(models.Model):
     objects = NestedValuesQuerySet.as_manager()
+```
+
+## NestedValuesQuerySetMixin
+
+A mixin class for adding `.values_nested()` to custom QuerySet classes.
+
+Use this when you have your own custom QuerySet and want to add `values_nested()` functionality.
+
+### Setup
+
+```python
+from django.db.models import QuerySet
+from django_nested_values import NestedValuesQuerySetMixin
+
+class MyCustomQuerySet(NestedValuesQuerySetMixin, QuerySet):
+    def published(self):
+        return self.filter(is_published=True)
+
+    def by_author(self, author_name):
+        return self.filter(authors__name=author_name)
+
+class Book(models.Model):
+    objects = MyCustomQuerySet.as_manager()
+
+# Use custom methods alongside values_nested()
+Book.objects.published().by_author("John").prefetch_related("authors").values_nested()
 ```
 
 ### values_nested()

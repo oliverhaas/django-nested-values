@@ -29,6 +29,30 @@ class Book(models.Model):
     objects = NestedValuesQuerySet.as_manager()
 ```
 
+### With Custom QuerySet
+
+If you have a custom QuerySet, use `NestedValuesQuerySetMixin` instead:
+
+```python
+from django.db.models import QuerySet
+from django_nested_values import NestedValuesQuerySetMixin
+
+
+class BookQuerySet(NestedValuesQuerySetMixin, QuerySet):
+    def published(self):
+        return self.filter(is_published=True)
+
+
+class Book(models.Model):
+    title = models.CharField(max_length=200)
+    is_published = models.BooleanField(default=False)
+
+    objects = BookQuerySet.as_manager()
+
+# Chain custom methods with values_nested()
+Book.objects.published().prefetch_related("authors").values_nested()
+```
+
 ## Basic Usage
 
 ```python
