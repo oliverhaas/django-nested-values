@@ -855,3 +855,73 @@ class TestQueryCount:
         assert django_book["publisher"]["name"] == "Tech Books Inc"
         assert len(django_book["authors"]) == 2
         assert len(django_book["chapters"]) == 3
+
+    def test_nested_select_related_fk_not_requeried(self, sample_data, django_assert_num_queries):
+        """Nested FK via select_related should not be queried separately.
+
+        This tests the fix for the bug where nested FKs (like book__publisher) were
+        being re-queried even when already fetched via select_related.
+
+        Scenario: Chapter -> Book (FK) -> Publisher (FK)
+        Using select_related("book", "book__publisher") + prefetch_related("book__publisher__books")
+        should NOT re-query Book or Publisher tables.
+        """
+        from django_nested_values import NestedValuesQuerySet
+
+        qs = NestedValuesQuerySet(model=Chapter)
+
+        # Expected queries:
+        # 1. Main query with JOINs for book and book__publisher
+        # 2. Books query for book__publisher__books
+        # Total: 2 queries (no extra queries for Book or Publisher)
+        with django_assert_num_queries(2):
+            result = list(
+                qs.select_related("book", "book__publisher").prefetch_related("book__publisher__books").values_nested(),
+            )
+
+        # Verify data structure is correct
+        assert len(result) == 5  # 3 chapters from book1 + 2 chapters from book2
+        intro_chapter = next(r for r in result if r["title"] == "Introduction")
+
+        # book should be a nested dict
+        assert "book" in intro_chapter
+        assert isinstance(intro_chapter["book"], dict)
+        assert intro_chapter["book"]["title"] == "Django for Beginners"
+
+        # book.publisher should be a nested dict (from select_related)
+        assert "publisher" in intro_chapter["book"]
+        assert isinstance(intro_chapter["book"]["publisher"], dict)
+        assert intro_chapter["book"]["publisher"]["name"] == "Tech Books Inc"
+
+        # book.publisher.books should be a list (from prefetch_related)
+        assert "books" in intro_chapter["book"]["publisher"]
+        assert isinstance(intro_chapter["book"]["publisher"]["books"], list)
+        assert len(intro_chapter["book"]["publisher"]["books"]) == 2  # 2 books from Tech Books Inc
+
+    def test_nested_select_related_fk_with_m2m_prefetch(self, sample_data, django_assert_num_queries):
+        """Nested FK via select_related combined with M2M prefetch on nested model.
+
+        Scenario: Chapter -> Book (FK) -> Publisher (FK)
+        prefetch_related("book__authors") requires accessing Book data, which should
+        come from select_related, not a separate query.
+        """
+        from django_nested_values import NestedValuesQuerySet
+
+        qs = NestedValuesQuerySet(model=Chapter)
+
+        # Expected queries:
+        # 1. Main query with JOINs for book and book__publisher
+        # 2. M2M through table query for book__authors
+        # 3. Author records query
+        # Total: 3 queries (no extra query for Book table)
+        with django_assert_num_queries(3):
+            result = list(
+                qs.select_related("book", "book__publisher").prefetch_related("book__authors").values_nested(),
+            )
+
+        # Verify data is correct
+        intro_chapter = next(r for r in result if r["title"] == "Introduction")
+        assert intro_chapter["book"]["title"] == "Django for Beginners"
+        assert intro_chapter["book"]["publisher"]["name"] == "Tech Books Inc"
+        assert "authors" in intro_chapter["book"]
+        assert len(intro_chapter["book"]["authors"]) == 2
