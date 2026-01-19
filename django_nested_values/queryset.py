@@ -857,21 +857,14 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         custom_qs: QuerySet | None,
         main_results: list[dict] | None = None,
     ) -> dict[Any, list[dict]]:
-        """Fetch reverse ManyToMany relation data."""
+        """Fetch reverse ManyToMany relation data.
+
+        Uses a single query with JOIN on the through table, matching Django's
+        native prefetch_related behavior.
+        """
         related_model = field.related_model
-        through_model = field.through
-        m2m_field = field.field
-
-        source_col = m2m_field.m2m_reverse_name()
-        target_col = m2m_field.m2m_column_name()
-
-        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})  # type: ignore[union-attr]
-        through_data = list(through_qs.values(source_col, target_col))
-
-        if not through_data:
-            return {pk: [] for pk in parent_pks}
-
-        related_pks = [t[target_col] for t in through_data]
+        # The forward M2M field name on the related model (e.g., Book.authors -> "authors")
+        forward_accessor = field.field.name
 
         fetch_fields = self._get_fields_for_relation(related_model, custom_qs)
         related_pk_name = related_model._meta.pk.name
@@ -887,17 +880,26 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 select_related_paths,
             )
 
-        # Build queryset
+        # Build queryset - filter related model where M2M field contains parent PKs
+        # This creates a single query with JOIN on the through table
         if custom_qs is not None:
-            related_qs = custom_qs.filter(pk__in=related_pks)
+            related_qs = custom_qs.filter(**{f"{forward_accessor}__in": parent_pks})
         else:
-            related_qs = related_model._default_manager.filter(pk__in=related_pks)
+            related_qs = related_model._default_manager.filter(**{f"{forward_accessor}__in": parent_pks})
 
-        raw_data = {r[related_pk_name]: r for r in related_qs.values(*fetch_fields)}
+        # Add parent PK to values for grouping (via through table JOIN)
+        fetch_fields_with_source = [*fetch_fields, f"{forward_accessor}__pk"]
+        raw_data = list(related_qs.values(*fetch_fields_with_source))
 
-        # Process rows - extract select_related data into nested dicts
+        # Group by parent PK
+        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
         related_data: dict[Any, dict] = {}
-        for pk, row in raw_data.items():
+
+        for row in raw_data:
+            source_pk = row.pop(f"{forward_accessor}__pk")
+            related_pk = row[related_pk_name]
+
+            # Extract select_related data into nested dicts
             if select_related_paths:
                 processed_row = self._extract_select_related_from_row(
                     row,
@@ -906,10 +908,14 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 )
             else:
                 processed_row = dict(row)
-            related_data[pk] = processed_row
+
+            result[source_pk].append(processed_row)
+
+            if nested_relations and related_pk not in related_data:
+                related_data[related_pk] = processed_row
 
         # Handle nested relations that weren't covered by select_related
-        if nested_relations:
+        if nested_relations and related_data:
             # Filter out relations that were already handled by select_related
             remaining_nested = [rel for rel in nested_relations if rel.split("__")[0] not in select_related_paths]
             if remaining_nested:
@@ -923,14 +929,14 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                     main_results,
                     parent_path,
                 )
-
-        # Group by parent PK
-        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
-        for through_row in through_data:
-            parent_pk = through_row[source_col]
-            related_pk = through_row[target_col]
-            if related_pk in related_data:
-                result[parent_pk].append(dict(related_data[related_pk]))
+                # Update results with nested data
+                for source_pk, items in result.items():
+                    for item in items:
+                        pk_val = item.get(related_pk_name)
+                        if pk_val and pk_val in related_data:
+                            for key, val in related_data[pk_val].items():
+                                if key not in item:
+                                    item[key] = val
 
         return result
 
@@ -1489,27 +1495,41 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         main_results: list[dict] | None = None,
         parent_path: str = "",
     ) -> dict[Any, list[dict]]:
-        """Fetch nested ManyToMany data."""
+        """Fetch nested ManyToMany data.
+
+        Uses a single query with JOIN on the through table, matching Django's
+        native prefetch_related behavior.
+        """
         related_model = field.related_model
-        through_model = field.remote_field.through
+        # The reverse accessor name on the related model (e.g., Author.books -> "books")
+        reverse_accessor = field.related_query_name()
 
-        source_col = field.m2m_column_name()
-        target_col = field.m2m_reverse_name()
-
-        through_qs = through_model.objects.filter(**{f"{source_col}__in": parent_pks})  # type: ignore[union-attr]
-        through_data = list(through_qs.values(source_col, target_col))
-
-        if not through_data:
-            return {pk: [] for pk in parent_pks}
-
-        related_pks = [t[target_col] for t in through_data]
         fetch_fields = [f.name for f in related_model._meta.concrete_fields]
         related_pk_name = related_model._meta.pk.name
 
-        related_qs = related_model._default_manager.filter(pk__in=related_pks)
-        related_data = {r[related_pk_name]: dict(r) for r in related_qs.values(*fetch_fields)}
+        # Filter related model where reverse M2M contains parent PKs
+        # This creates a single query with JOIN on the through table
+        related_qs = related_model._default_manager.filter(**{f"{reverse_accessor}__in": parent_pks})
 
-        if further_nested:
+        # Add parent PK to values for grouping (via through table JOIN)
+        fetch_fields_with_source = [*fetch_fields, f"{reverse_accessor}__pk"]
+        raw_data = list(related_qs.values(*fetch_fields_with_source))
+
+        # Group by parent PK
+        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
+        related_data: dict[Any, dict] = {}
+
+        for row in raw_data:
+            source_pk = row.pop(f"{reverse_accessor}__pk")
+            related_pk = row[related_pk_name]
+            row_dict = dict(row)
+
+            result[source_pk].append(row_dict)
+
+            if further_nested and related_pk not in related_data:
+                related_data[related_pk] = row_dict
+
+        if further_nested and related_data:
             # Build full path for this relation
             full_path = f"{parent_path}{field.name}"
             new_parent_path = f"{full_path}__"
@@ -1521,13 +1541,14 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 main_results,
                 new_parent_path,
             )
-
-        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
-        for through_row in through_data:
-            parent_pk = through_row[source_col]
-            related_pk = through_row[target_col]
-            if related_pk in related_data:
-                result[parent_pk].append(dict(related_data[related_pk]))
+            # Update results with nested data
+            for source_pk, items in result.items():
+                for item in items:
+                    pk_val = item.get(related_pk_name)
+                    if pk_val and pk_val in related_data:
+                        for key, val in related_data[pk_val].items():
+                            if key not in item:
+                                item[key] = val
 
         return result
 
