@@ -45,3 +45,37 @@ class Comment(models.Model):
 
     def __str__(self) -> str:
         return self.text
+
+
+class Bookmark(models.Model):
+    """A bookmark with custom GFK field names (target_ct, target_id instead of content_type, object_id)."""
+
+    name = models.CharField(max_length=100)
+    # Custom field names for GenericForeignKey
+    target_ct = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    target_id = models.PositiveIntegerField()
+    target = GenericForeignKey("target_ct", "target_id")
+
+    class Meta:
+        app_label = "tests"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class BookmarkableArticle(models.Model):
+    """An article that can be bookmarked via GenericRelation with custom field names."""
+
+    title = models.CharField(max_length=200)
+    # GenericRelation pointing to Bookmark's custom GFK fields
+    bookmarks = GenericRelation(
+        Bookmark,
+        content_type_field="target_ct",
+        object_id_field="target_id",
+    )
+
+    class Meta:
+        app_label = "tests"
+
+    def __str__(self) -> str:
+        return self.title

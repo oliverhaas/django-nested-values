@@ -3,7 +3,7 @@ import pytest
 from django.contrib.contenttypes.prefetch import GenericPrefetch
 
 from django_nested_values import NestedValuesQuerySet
-from tests.models import Article, Comment, TaggedItem
+from tests.models import Article, Bookmark, BookmarkableArticle, Comment, TaggedItem
 
 
 @pytest.mark.django_db
@@ -243,3 +243,150 @@ class TestGenericForeignKey:
         # Assert
         assert len(result) == 1
         assert result[0]["content_object"] is None
+
+
+@pytest.mark.django_db
+class TestGenericRelationQueryCount:
+    """Tests to verify GenericRelation and GenericForeignKey use optimal queries."""
+
+    def test_generic_relation_query_count(self, django_assert_num_queries):
+        """GenericRelation prefetch should use same number of queries as Django ORM."""
+        # Arrange
+        article1 = Article.objects.create(title="Article 1")
+        article2 = Article.objects.create(title="Article 2")
+        TaggedItem.objects.create(content_object=article1, tag="tag1")
+        TaggedItem.objects.create(content_object=article1, tag="tag2")
+        TaggedItem.objects.create(content_object=article2, tag="tag3")
+
+        # First, verify Django ORM query count
+        with django_assert_num_queries(2):
+            normal_result = list(Article.objects.prefetch_related("tags").all())
+            for article in normal_result:
+                list(article.tags.all())
+
+        # Now test values_nested() uses the same count
+        qs = NestedValuesQuerySet(model=Article)
+        with django_assert_num_queries(2):
+            result = list(qs.prefetch_related("tags").values_nested())
+            for r in result:
+                list(r["tags"])
+
+        assert len(result) == 2
+
+    def test_generic_fk_query_count(self, django_assert_num_queries):
+        """GenericForeignKey with GenericPrefetch should use same queries as Django ORM."""
+        # Arrange
+        article = Article.objects.create(title="Test Article")
+        tag1 = TaggedItem.objects.create(content_object=article, tag="python")
+        tag2 = TaggedItem.objects.create(content_object=article, tag="django")
+
+        # First, verify Django ORM query count for GenericPrefetch
+        prefetch = GenericPrefetch("content_object", [Article.objects.all()])
+        with django_assert_num_queries(2):
+            normal_result = list(TaggedItem.objects.filter(id__in=[tag1.id, tag2.id]).prefetch_related(prefetch))
+            for tag in normal_result:
+                _ = tag.content_object
+
+        # Now test values_nested() uses the same count
+        qs = NestedValuesQuerySet(model=TaggedItem)
+        with django_assert_num_queries(2):
+            result = list(
+                qs.filter(id__in=[tag1.id, tag2.id]).prefetch_related(prefetch).values_nested(),
+            )
+            for r in result:
+                _ = r["content_object"]
+
+        assert len(result) == 2
+
+    def test_generic_fk_multiple_content_types_query_count(self, django_assert_num_queries):
+        """GenericForeignKey with multiple content types should match Django ORM query count."""
+        # Arrange
+        article = Article.objects.create(title="Test Article")
+        comment = Comment.objects.create(article=article, text="Test Comment")
+        tag1 = TaggedItem.objects.create(content_object=article, tag="article-tag")
+        tag2 = TaggedItem.objects.create(content_object=comment, tag="comment-tag")
+
+        # Django ORM with multiple content types in GenericPrefetch
+        prefetch = GenericPrefetch(
+            "content_object",
+            [Article.objects.all(), Comment.objects.all()],
+        )
+        # Expected: 1 (main) + 1 (articles) + 1 (comments) = 3 queries
+        with django_assert_num_queries(3):
+            normal_result = list(TaggedItem.objects.filter(id__in=[tag1.id, tag2.id]).prefetch_related(prefetch))
+            for tag in normal_result:
+                _ = tag.content_object
+
+        # values_nested() should use the same count
+        qs = NestedValuesQuerySet(model=TaggedItem)
+        with django_assert_num_queries(3):
+            result = list(
+                qs.filter(id__in=[tag1.id, tag2.id]).prefetch_related(prefetch).values_nested(),
+            )
+            for r in result:
+                _ = r["content_object"]
+
+        assert len(result) == 2
+
+
+@pytest.mark.django_db
+class TestCustomGFKFieldNames:
+    """Tests for GenericRelation/GenericForeignKey with custom field names."""
+
+    def test_generic_relation_custom_field_names(self):
+        """GenericRelation should work with custom content_type/object_id field names."""
+        # Arrange
+        article = BookmarkableArticle.objects.create(title="Bookmarkable Article")
+        Bookmark.objects.create(name="My Bookmark", target=article)
+        Bookmark.objects.create(name="Another Bookmark", target=article)
+
+        # Act
+        qs = NestedValuesQuerySet(model=BookmarkableArticle)
+        result = list(
+            qs.filter(id=article.id).prefetch_related("bookmarks").values_nested(),
+        )
+
+        # Assert
+        assert len(result) == 1
+        assert result[0]["title"] == "Bookmarkable Article"
+        assert "bookmarks" in result[0]
+        assert len(result[0]["bookmarks"]) == 2
+
+        bookmark_names = {b["name"] for b in result[0]["bookmarks"]}
+        assert bookmark_names == {"My Bookmark", "Another Bookmark"}
+
+    def test_generic_fk_custom_field_names(self):
+        """GenericForeignKey should work with custom ct_field/fk_field names."""
+        # Arrange
+        article = BookmarkableArticle.objects.create(title="Target Article")
+        bookmark = Bookmark.objects.create(name="Test Bookmark", target=article)
+
+        # Act
+        qs = NestedValuesQuerySet(model=Bookmark)
+        prefetch = GenericPrefetch("target", [BookmarkableArticle.objects.all()])
+        result = list(
+            qs.filter(id=bookmark.id).prefetch_related(prefetch).values_nested(),
+        )
+
+        # Assert
+        assert len(result) == 1
+        assert result[0]["name"] == "Test Bookmark"
+        assert "target" in result[0]
+        assert result[0]["target"]["title"] == "Target Article"
+
+    def test_custom_gfk_fields_included_without_prefetch(self):
+        """Custom GFK fields (target_ct_id, target_id) should be included without prefetch."""
+        # Arrange
+        article = BookmarkableArticle.objects.create(title="Test")
+        bookmark = Bookmark.objects.create(name="Test Bookmark", target=article)
+
+        # Act - No prefetch_related for target
+        qs = NestedValuesQuerySet(model=Bookmark)
+        result = list(qs.filter(id=bookmark.id).values_nested())
+
+        # Assert - should have the custom FK fields as regular fields
+        assert len(result) == 1
+        assert "target_ct_id" in result[0]
+        assert "target_id" in result[0]
+        assert result[0]["target_ct_id"] is not None
+        assert result[0]["target_id"] == article.id
