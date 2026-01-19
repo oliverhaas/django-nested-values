@@ -53,6 +53,23 @@ class Book(models.Model):
 Book.objects.published().prefetch_related("authors").values_nested()
 ```
 
+### Ad-hoc Usage (No Model Changes)
+
+Use `NestedValuesQuerySet` directly without modifying your models:
+
+```python
+from django_nested_values import NestedValuesQuerySet
+
+# Instantiate with any model
+qs = NestedValuesQuerySet(model=Book)
+result = list(
+    qs.filter(is_published=True)
+    .select_related("publisher")
+    .prefetch_related("authors")
+    .values_nested()
+)
+```
+
 ## Basic Usage
 
 ```python

@@ -15,6 +15,17 @@ class MyModel(models.Model):
     objects = NestedValuesQuerySet.as_manager()
 ```
 
+### Ad-hoc Usage
+
+Use directly without modifying models:
+
+```python
+from django_nested_values import NestedValuesQuerySet
+
+qs = NestedValuesQuerySet(model=Book)
+result = list(qs.select_related("publisher").prefetch_related("authors").values_nested())
+```
+
 ## NestedValuesQuerySetMixin
 
 A mixin class for adding `.values_nested()` to custom QuerySet classes.
