@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar, cast
 
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import ForeignKey, ManyToManyField, ManyToManyRel, ManyToOneRel, Model, Prefetch, QuerySet
@@ -136,8 +136,9 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
     def _get_select_related_fields(self) -> dict[str, list[str]]:
         """Get select_related relations and their fields.
 
-        Returns a dict mapping relation name to list of fields to fetch.
+        Returns a dict mapping relation path to list of fields to fetch.
         Empty list means all fields.
+        Nested relations are flattened: {'book': {'publisher': {}}} -> {'book': [], 'book__publisher': []}
         """
         select_related = self.query.select_related
 
@@ -154,13 +155,27 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             return result
 
         # select_related is a dict of {relation_name: nested_select_related}
+        # Flatten nested structure to paths like "book__publisher"
         result = {}
-        for relation_name in select_related:
-            # Get the fields for this relation based on .only()
-            relation_fields = self._get_relation_fields_from_only(relation_name)
-            result[relation_name] = relation_fields
-
+        self._flatten_select_related(select_related, "", result)
         return result
+
+    def _flatten_select_related(
+        self,
+        select_related: dict,
+        prefix: str,
+        result: dict[str, list[str]],
+    ) -> None:
+        """Recursively flatten nested select_related structure to path-based dict."""
+        for relation_name, nested in select_related.items():
+            full_path = f"{prefix}{relation_name}" if prefix else relation_name
+            # Get the fields for this relation based on .only()
+            relation_fields = self._get_relation_fields_from_only(full_path)
+            result[full_path] = relation_fields
+
+            # Recurse for nested select_related
+            if nested:
+                self._flatten_select_related(nested, f"{full_path}__", result)
 
     def _get_relation_fields_from_only(self, relation_name: str) -> list[str]:
         """Get the fields to fetch for a relation based on .only() with double-underscore."""
@@ -185,15 +200,18 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         # Start with pk (always needed for prefetch lookups)
         fields = [pk_name] if pk_name not in main_fields else []
 
-        # Get FK attnames that are being select_related'd (we don't want both publisher_id and publisher.*)
+        # Get FK attnames that are being select_related'd at top level
+        # (we don't want both publisher_id and publisher.*)
         fk_attnames_to_skip = set()
-        for relation_name in select_related_fields:
-            try:
-                rel_field = self.model._meta.get_field(relation_name)
-                if isinstance(rel_field, ForeignKey):
-                    fk_attnames_to_skip.add(rel_field.attname)  # e.g., publisher_id
-            except FieldDoesNotExist:
-                pass
+        for relation_path in select_related_fields:
+            # Only skip for top-level relations (no __ in path)
+            if "__" not in relation_path:
+                try:
+                    rel_field = self.model._meta.get_field(relation_path)
+                    if isinstance(rel_field, ForeignKey):
+                        fk_attnames_to_skip.add(rel_field.attname)  # e.g., publisher_id
+                except FieldDoesNotExist:
+                    pass
 
         # Add main model fields (excluding FKs that have select_related)
         for field in main_fields:
@@ -201,30 +219,42 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 fields.append(field)
 
         # Add select_related fields with double-underscore notation
-        for relation_name, relation_fields in select_related_fields.items():
-            # Get the related model to know its pk name
-            try:
-                rel_field = self.model._meta.get_field(relation_name)
-            except FieldDoesNotExist:
+        for relation_path, relation_fields in select_related_fields.items():
+            # Get the related model by traversing the path
+            related_model = self._get_related_model_for_path(relation_path)
+            if related_model is None:
                 continue
 
-            if not isinstance(rel_field, ForeignKey):
-                continue
-
-            related_model = rel_field.related_model
             related_pk = related_model._meta.pk.name
 
             if relation_fields:
                 # Specific fields requested via only()
                 # Always include pk for the relation
                 if related_pk not in relation_fields:
-                    fields.append(f"{relation_name}__{related_pk}")
-                fields.extend(f"{relation_name}__{rf}" for rf in relation_fields)
+                    fields.append(f"{relation_path}__{related_pk}")
+                fields.extend(f"{relation_path}__{rf}" for rf in relation_fields)
             else:
                 # All fields from the related model
-                fields.extend(f"{relation_name}__{rf.name}" for rf in related_model._meta.concrete_fields)
+                fields.extend(f"{relation_path}__{rf.name}" for rf in related_model._meta.concrete_fields)
 
         return fields
+
+    def _get_related_model_for_path(self, path: str) -> type[Model] | None:
+        """Get the related model for a relation path like 'book__publisher'."""
+        parts = path.split("__")
+        current_model = self.model
+
+        for part in parts:
+            try:
+                rel_field = current_model._meta.get_field(part)
+                if isinstance(rel_field, ForeignKey):
+                    current_model = rel_field.related_model
+                else:
+                    return None
+            except FieldDoesNotExist:
+                return None
+
+        return current_model
 
     def _build_main_queryset(self) -> QuerySet:
         """Build a fresh queryset for the main query."""
@@ -550,6 +580,9 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         pk_name: str,
     ) -> Iterator[dict[str, Any]]:
         """Build the final nested dictionaries."""
+        # Get only top-level select_related (no __ in path)
+        top_level_select_related = {k: v for k, v in select_related_fields.items() if "__" not in k}
+
         for row in main_results:
             row_dict: dict[str, Any] = {}
             pk = row[pk_name]
@@ -560,12 +593,18 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
             # Add main model fields
             for field in main_fields:
-                if field in row and field not in select_related_fields and "__" not in field:
+                if field in row and field not in top_level_select_related and "__" not in field:
                     row_dict[field] = row[field]
 
-            # Build nested dicts for select_related
-            for relation_name, relation_fields in select_related_fields.items():
-                nested_dict = self._extract_relation_from_row(row, relation_name, relation_fields)
+            # Build nested dicts for select_related (only top-level, nested handled recursively)
+            for relation_name, relation_fields in top_level_select_related.items():
+                nested_dict = self._extract_relation_from_row(
+                    row,
+                    relation_name,
+                    relation_fields,
+                    select_related_fields,
+                    cast("type[Model]", self.model),
+                )
                 if nested_dict is not None:
                     row_dict[relation_name] = nested_dict
 
@@ -588,32 +627,93 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
             yield row_dict
 
-    def _extract_relation_from_row(
+    def _extract_relation_from_row(  # noqa: PLR0913
         self,
         row: dict,
         relation_name: str,
         relation_fields: list[str],
+        all_select_related: dict[str, list[str]],
+        parent_model: type[Model],
+        prefix_path: str = "",
     ) -> dict | None:
-        """Extract a select_related relation's data from a flat row dict."""
-        prefix = f"{relation_name}__"
-        nested_dict = {}
+        """Extract a select_related relation's data from a flat row dict.
 
-        # Get related model's pk name
-        related_pk_name = None
+        Args:
+            row: The flat row dict from values() query
+            relation_name: The relation name (e.g., 'book')
+            relation_fields: List of fields to include (empty = all fields)
+            all_select_related: Full dict of all select_related paths
+            parent_model: The model that has this relation
+            prefix_path: Path prefix for nested relations (e.g., 'book__' when extracting publisher from book)
+        """
+        # Build the full prefix for extracting from row
+        full_prefix = f"{prefix_path}{relation_name}__"
+        nested_dict: dict[str, Any] = {}
+
+        # Get related model and its pk name
         try:
-            rel_field = self.model._meta.get_field(relation_name)
-            if isinstance(rel_field, ForeignKey):
-                related_pk_name = rel_field.related_model._meta.pk.name
+            rel_field = parent_model._meta.get_field(relation_name)
+            if not isinstance(rel_field, ForeignKey):
+                return None
+            related_model = rel_field.related_model
+            related_pk_name = related_model._meta.pk.name
         except FieldDoesNotExist:
-            pass
+            return None
 
+        # Build the full path for checking nested select_related
+        current_path = f"{prefix_path}{relation_name}" if prefix_path else relation_name
+
+        # Find which nested relations are select_related from this level
+        nested_select_related = {}
+        nested_prefix = f"{current_path}__"
+        for path, fields in all_select_related.items():
+            if path.startswith(nested_prefix) and "__" not in path[len(nested_prefix) :]:
+                # This is a direct child relation
+                child_relation = path[len(nested_prefix) :]
+                nested_select_related[child_relation] = fields
+
+        # Extract fields from row
         for key, value in row.items():
-            if key.startswith(prefix):
-                field_name = key[len(prefix) :]
-                # Always include pk, and check if other fields were requested
-                # (empty list means all fields)
+            if key.startswith(full_prefix):
+                field_name = key[len(full_prefix) :]
+
+                # Skip fields that belong to nested relations (contain __)
+                if "__" in field_name:
+                    continue
+
+                # Check if this is a FK field that should be a nested dict
+                try:
+                    field_obj = related_model._meta.get_field(field_name)
+                    is_fk = isinstance(field_obj, ForeignKey)
+                except FieldDoesNotExist:
+                    is_fk = False
+
+                if is_fk:
+                    # Always include the _id field (e.g., publisher_id) for FK fields
+                    fk_field = field_obj
+                    nested_dict[fk_field.attname] = value
+                    # Skip adding as relation name - nested dict will be added below if select_related
+                    continue
+
+                # Include this field if:
+                # - It's the pk field
+                # - No specific fields requested (empty list = all fields)
+                # - It's in the requested fields list
                 if field_name == related_pk_name or not relation_fields or field_name in relation_fields:
                     nested_dict[field_name] = value
+
+        # Recursively extract nested select_related relations
+        for child_relation, child_fields in nested_select_related.items():
+            child_dict = self._extract_relation_from_row(
+                row,
+                child_relation,
+                child_fields,
+                all_select_related,
+                related_model,
+                full_prefix,
+            )
+            if child_dict is not None:
+                nested_dict[child_relation] = child_dict
 
         # Check for NULL FK (related pk is None)
         if related_pk_name and nested_dict.get(related_pk_name) is None:
