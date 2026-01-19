@@ -410,6 +410,37 @@ class TestCombinedSelectAndPrefetch:
         assert isinstance(django_book["authors"], list)
         assert len(django_book["authors"]) == 2
 
+    def test_select_related_with_overlapping_prefetch(self, sample_data):
+        """select_related data should not be overwritten by prefetch_related with overlapping paths.
+
+        Bug: When using select_related("publisher") and prefetch_related("publisher__books"),
+        the publisher data from select_related was being overwritten with None.
+        """
+        from django_nested_values import NestedValuesQuerySet
+
+        qs = NestedValuesQuerySet(model=Book)
+        result = list(
+            qs.filter(title="Django for Beginners")
+            .select_related("publisher")
+            .prefetch_related("publisher__books")  # Overlaps with "publisher"
+            .values_nested(),
+        )
+
+        assert len(result) == 1
+        book = result[0]
+
+        # Publisher should NOT be None - this is the bug
+        assert book["publisher"] is not None, "select_related data was overwritten by prefetch_related"
+        assert isinstance(book["publisher"], dict)
+        assert book["publisher"]["name"] == "Tech Books Inc"
+        assert book["publisher"]["country"] == "USA"
+
+        # Publisher should also have the nested books from prefetch_related
+        assert "books" in book["publisher"], "nested prefetch data should be merged into select_related"
+        assert isinstance(book["publisher"]["books"], list)
+        # Tech Books Inc has 2 books: "Django for Beginners" and "Advanced Python"
+        assert len(book["publisher"]["books"]) == 2
+
     def test_combined_query_count(self, sample_data, django_assert_num_queries):
         """Combined should use 1 (JOIN for FK) + 1 (prefetch for M2M) = 2 queries."""
         from django_nested_values import NestedValuesQuerySet

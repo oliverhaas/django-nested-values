@@ -2,21 +2,76 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 
 from django.core.exceptions import FieldDoesNotExist
-from django.db.models import ForeignKey, ManyToManyField, ManyToManyRel, ManyToOneRel, Prefetch, QuerySet
+from django.db.models import ForeignKey, ManyToManyField, ManyToManyRel, ManyToOneRel, Model, Prefetch, QuerySet
+from django.db.models.query import BaseIterable
+
+# TypeVar for the model type, used for generic typing with django-stubs
+_ModelT_co = TypeVar("_ModelT_co", bound=Model, covariant=True)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
     # For type checking, pretend the mixin inherits from QuerySet
-    _MixinBase = QuerySet
+    # This allows type checkers to see QuerySet methods on the mixin
+    class _MixinBase(QuerySet[_ModelT_co, _ModelT_co]):
+        pass
 else:
-    _MixinBase = object
+    # At runtime, use Generic to allow subscripting like NestedValuesQuerySetMixin[Book]
+    _MixinBase = Generic
 
 
-class NestedValuesQuerySetMixin(_MixinBase):
+class NestedValuesIterable(BaseIterable):
+    """Iterable that yields nested dictionaries for QuerySet.values_nested().
+
+    This follows Django's pattern of using iterable classes (like ValuesIterable)
+    to control how queryset iteration yields results.
+    """
+
+    if TYPE_CHECKING:
+        # The queryset is expected to be a NestedValuesQuerySetMixin
+        queryset: NestedValuesQuerySetMixin[Any]
+
+    def __iter__(self) -> Iterator[dict[str, Any]]:
+        """Iterate over the queryset, yielding nested dictionaries."""
+        queryset = self.queryset
+
+        # Determine which fields to fetch based on .only() / .defer()
+        main_fields = queryset._get_main_fields()
+        select_related_fields = queryset._get_select_related_fields()
+        prefetch_lookups = queryset._prefetch_related_lookups  # type: ignore[attr-defined]
+
+        pk_name = queryset.model._meta.pk.name
+
+        # Build fields for main query (include pk, main fields, and select_related fields)
+        query_fields = queryset._build_query_fields(main_fields, select_related_fields, pk_name)
+
+        # Execute main query with select_related joins
+        main_qs = queryset._build_main_queryset()
+        main_results = list(main_qs.values(*query_fields))
+
+        if not main_results:
+            return
+
+        # Get PKs for prefetch queries
+        pk_values = [r[pk_name] for r in main_results]
+
+        # Fetch prefetched relations (pass main_results to avoid extra queries for FK ids)
+        prefetched_data = queryset._fetch_all_prefetched(prefetch_lookups, pk_values, main_results)
+
+        # Build and yield final results
+        yield from queryset._build_results(
+            main_results,
+            main_fields,
+            select_related_fields,
+            prefetched_data,
+            pk_name,
+        )
+
+
+class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
     """Mixin that adds .values_nested() to any QuerySet.
 
     Use this mixin to add values_nested() to your custom QuerySet classes:
@@ -29,71 +84,26 @@ class NestedValuesQuerySetMixin(_MixinBase):
             objects = MyQuerySet.as_manager()
 
     Or use the pre-built NestedValuesQuerySet if you don't need a custom QuerySet.
+
+    Type hints: After calling values_nested(), the queryset yields dict[str, Any]
+    when iterated, similar to Django's values() method.
     """
 
-    # Internal flag to track if values_nested() was called
-    _values_nested_enabled: bool
-
-    def values_nested(self) -> Self:
+    def values_nested(self) -> QuerySet[_ModelT_co, dict[str, Any]]:
         """Return nested dictionaries with related objects included.
 
         Takes no arguments. Use standard Django methods to control output:
         - .only() to select which fields to include
         - .select_related() for ForeignKey relations (single dict)
         - .prefetch_related() for ManyToMany/reverse FK relations (list of dicts)
+
+        Returns:
+            A QuerySet that yields dict[str, Any] when iterated, with nested
+            dictionaries for related objects.
         """
-        clone = self._clone()
-        clone._values_nested_enabled = True
-        return clone
-
-    def _clone(self) -> Self:
-        """Clone the queryset, preserving our custom attributes."""
-        clone: Self = super()._clone()  # type: ignore[assignment]
-        if hasattr(self, "_values_nested_enabled"):
-            clone._values_nested_enabled = self._values_nested_enabled
-        return clone
-
-    def _fetch_all(self) -> None:
-        """Override _fetch_all to use our custom values-based fetching."""
-        if self._result_cache is None:
-            if getattr(self, "_values_nested_enabled", False):
-                self._result_cache = self._execute_values_nested()
-            else:
-                super()._fetch_all()
-
-    def _execute_values_nested(self) -> list[dict[str, Any]]:
-        """Execute the query and return nested dictionaries."""
-        # Determine which fields to fetch based on .only() / .defer()
-        main_fields = self._get_main_fields()
-        select_related_fields = self._get_select_related_fields()
-        prefetch_lookups = self._prefetch_related_lookups  # type: ignore[attr-defined]
-
-        pk_name = self.model._meta.pk.name
-
-        # Build fields for main query (include pk, main fields, and select_related fields)
-        query_fields = self._build_query_fields(main_fields, select_related_fields, pk_name)
-
-        # Execute main query with select_related joins
-        main_qs = self._build_main_queryset()
-        main_results = list(main_qs.values(*query_fields))
-
-        if not main_results:
-            return []
-
-        # Get PKs for prefetch queries
-        pk_values = [r[pk_name] for r in main_results]
-
-        # Fetch prefetched relations (pass main_results to avoid extra queries for FK ids)
-        prefetched_data = self._fetch_all_prefetched(prefetch_lookups, pk_values, main_results)
-
-        # Build final results
-        return self._build_results(
-            main_results,
-            main_fields,
-            select_related_fields,
-            prefetched_data,
-            pk_name,
-        )
+        clone: Self = self._clone()  # type: ignore[attr-defined]  # _clone is from QuerySet
+        clone._iterable_class = NestedValuesIterable
+        return clone  # Return type changes from Self to QuerySet[..., dict]
 
     def _get_main_fields(self) -> list[str]:
         """Get the fields to fetch for the main model based on .only() / .defer().
@@ -434,10 +444,20 @@ class NestedValuesQuerySetMixin(_MixinBase):
         """Fetch ForeignKey relation data (when using prefetch_related, not select_related)."""
         related_model = field.related_model
         fk_attname = field.attname  # e.g., publisher_id
+        relation_name = field.name  # e.g., publisher
+        related_pk_name = related_model._meta.pk.name
 
         # Get FK values from main_results (avoids extra query)
         pk_name = self.model._meta.pk.name
-        fk_data = {r[pk_name]: r.get(fk_attname) for r in main_results}
+        fk_data = {}
+        for r in main_results:
+            parent_pk = r[pk_name]
+            # Try direct FK attname first (when not using select_related)
+            fk_value = r.get(fk_attname)
+            # Fallback to select_related data (when FK attname was skipped)
+            if fk_value is None:
+                fk_value = r.get(f"{relation_name}__{related_pk_name}")
+            fk_data[parent_pk] = fk_value
 
         fk_values = list({v for v in fk_data.values() if v is not None})
         if not fk_values:
@@ -528,10 +548,8 @@ class NestedValuesQuerySetMixin(_MixinBase):
         select_related_fields: dict[str, list[str]],
         prefetched_data: dict[str, dict[Any, list[dict] | dict | None]],
         pk_name: str,
-    ) -> list[dict[str, Any]]:
+    ) -> Iterator[dict[str, Any]]:
         """Build the final nested dictionaries."""
-        result = []
-
         for row in main_results:
             row_dict: dict[str, Any] = {}
             pk = row[pk_name]
@@ -553,11 +571,22 @@ class NestedValuesQuerySetMixin(_MixinBase):
 
             # Add prefetched relations
             for attr_name, data_by_pk in prefetched_data.items():
-                row_dict[attr_name] = data_by_pk.get(pk, [])
+                prefetch_value = data_by_pk.get(pk, [])
 
-            result.append(row_dict)
+                # Check if this attr was already set by select_related
+                if attr_name in row_dict:
+                    existing = row_dict[attr_name]
+                    if isinstance(existing, dict) and isinstance(prefetch_value, dict):
+                        # Merge prefetched nested data into select_related data
+                        # Only add keys that don't already exist (select_related data takes precedence)
+                        for key, val in prefetch_value.items():
+                            if key not in existing:
+                                existing[key] = val
+                    # If types don't match, keep select_related data (shouldn't happen in normal use)
+                else:
+                    row_dict[attr_name] = prefetch_value
 
-        return result
+            yield row_dict
 
     def _extract_relation_from_row(
         self,
@@ -784,13 +813,8 @@ class NestedValuesQuerySetMixin(_MixinBase):
         """Check if a field represents a many-relation."""
         return isinstance(field, ManyToManyField | ManyToManyRel | ManyToOneRel)
 
-    def __iter__(self) -> Iterator[dict[str, Any]]:
-        """Iterate over the queryset."""
-        self._fetch_all()
-        yield from self._result_cache  # type: ignore[misc]  # _fetch_all ensures this is not None
 
-
-class NestedValuesQuerySet(NestedValuesQuerySetMixin, QuerySet):
+class NestedValuesQuerySet(NestedValuesQuerySetMixin[_ModelT_co], QuerySet[_ModelT_co, _ModelT_co]):
     """QuerySet that adds .values_nested() for nested dictionaries.
 
     This is a ready-to-use QuerySet combining NestedValuesQuerySetMixin with Django's QuerySet.
@@ -808,4 +832,7 @@ class NestedValuesQuerySet(NestedValuesQuerySetMixin, QuerySet):
         class MyQuerySet(NestedValuesQuerySetMixin, QuerySet):
             def my_custom_method(self):
                 ...
+
+    Type hints: The queryset is generic over the model type. After calling values_nested(),
+    it yields dict[str, Any] when iterated, similar to Django's values() method.
     """
