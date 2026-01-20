@@ -447,17 +447,20 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
     @overload
     def values_nested(
         self,
+        *,
         as_objects: Literal[False] = ...,
     ) -> QuerySet[_ModelT_co, dict[str, Any]]: ...
 
     @overload
     def values_nested(
         self,
+        *,
         as_objects: Literal[True],
     ) -> QuerySet[_ModelT_co, NestedObject]: ...
 
     def values_nested(
         self,
+        *,
         as_objects: bool = False,
     ) -> QuerySet[_ModelT_co, dict[str, Any]] | QuerySet[_ModelT_co, NestedObject]:
         """Return nested dictionaries with related objects included.

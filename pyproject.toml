@@ -69,8 +69,6 @@ ignore = [
   "D",       # Docstrings not enforced
   "E5",      # 120 char limit is sufficient
   "EM102",   # f-string in AttributeError matches Python's standard format
-  "FBT001",  # as_objects: bool parameter is clear API design
-  "FBT002",
   "PLC0415", # Lazy import of django.db.connections in M2M method
   "PLR0912", # Complex ORM dispatch logic requires many branches
   "SLF001",  # Private member access needed for Django internals
