@@ -230,7 +230,7 @@ class NestedValuesIterable(BaseIterable):
                 self._set_nested_value(row, attr_name, prefetch_value)
             yield row
 
-    def _set_nested_value(self, row: dict, attr_path: str, value: Any) -> None:
+    def _set_nested_value(self, row: dict[str, Any], attr_path: str, value: Any) -> None:
         """Set a value in a nested dict using a path like 'publisher__books'.
 
         Navigates to the correct nested location and sets or merges the value.
@@ -258,7 +258,7 @@ class NestedValuesIterable(BaseIterable):
         else:
             target[final_key] = value
 
-    def _merge_dicts(self, target: dict, source: dict) -> None:
+    def _merge_dicts(self, target: dict[str, Any], source: dict[str, Any]) -> None:
         """Recursively merge source dict into target dict.
 
         New keys from source are added. For existing keys where both values
@@ -361,10 +361,10 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         self,
         prefetch_lookups: tuple,
         parent_pks: list[Any],
-        main_results: list[dict],
-    ) -> dict[str, dict[Any, list[dict] | dict | None]]:
+        main_results: list[dict[str, Any]],
+    ) -> dict[str, dict[Any, list[dict[str, Any]] | dict[str, Any] | None]]:
         """Fetch all prefetched relations."""
-        result: dict[str, dict[Any, list[dict] | dict | None]] = {}
+        result: dict[str, dict[Any, list[dict[str, Any]] | dict[str, Any] | None]] = {}
 
         # Group lookups by top-level relation name
         lookup_map = self._group_prefetch_lookups(prefetch_lookups)
@@ -391,9 +391,9 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
         return result
 
-    def _group_prefetch_lookups(self, prefetch_lookups: tuple) -> dict[str, dict]:
+    def _group_prefetch_lookups(self, prefetch_lookups: tuple) -> dict[str, dict[str, Any]]:
         """Group prefetch lookups by their top-level attribute name."""
-        result: dict[str, dict] = {}
+        result: dict[str, dict[str, Any]] = {}
 
         for lookup in prefetch_lookups:
             if isinstance(lookup, GenericPrefetch):
@@ -438,8 +438,8 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         lookup: str | Prefetch,
         nested_relations: list[str],
         parent_pks: list[Any],
-        main_results: list[dict],
-    ) -> dict[Any, list[dict] | dict | None]:
+        main_results: list[dict[str, Any]],
+    ) -> dict[Any, list[dict[str, Any]] | dict[str, Any] | None]:
         """Fetch a related model's data and group by parent PK."""
         # Get the actual relation name (may differ from attr_name if to_attr is used)
         relation_name = (
@@ -494,7 +494,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
     def _flatten_select_related_to_paths(
         self,
-        select_related: dict,
+        select_related: dict[str, Any],
         prefix: str,
         result: dict[str, Any],
     ) -> None:
@@ -513,10 +513,10 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         nested_relations: list[str],
         parent_pks: list[Any],
         custom_qs: QuerySet | None,
-        main_results: list[dict] | None,
+        main_results: list[dict[str, Any]] | None,
         parent_path: str,
         m2m_field: ManyToManyField | ManyToManyRel,
-    ) -> dict[Any, list[dict]]:
+    ) -> dict[Any, list[dict[str, Any]]]:
         """Internal helper to fetch M2M data - used by forward/reverse M2M, top-level and nested.
 
         Uses Django's compiler with .extra() annotation to match Django's native
@@ -558,8 +558,8 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             return {pk: [] for pk in parent_pks}
 
         # Group by parent PK (from extra column)
-        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
-        related_data: dict[Any, dict] = {}
+        result: dict[Any, list[dict[str, Any]]] = {pk: [] for pk in parent_pks}
+        related_data: dict[Any, dict[str, Any]] = {}
 
         for row_dict, extra_vals in zip(dicts, extra_values, strict=True):
             # Get parent PK from first extra column
@@ -605,9 +605,9 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         nested_relations: list[str],
         parent_pks: list[Any],
         custom_qs: QuerySet | None,
-        main_results: list[dict] | None,
+        main_results: list[dict[str, Any]] | None,
         parent_path: str,
-    ) -> dict[Any, list[dict]]:
+    ) -> dict[Any, list[dict[str, Any]]]:
         """Fetch reverse FK data using compiler. Raw rows → dicts, no model instantiation."""
         related_pk_name = related_model._meta.pk.name
         # Get the FK field's attname (e.g., 'book_id' for FK field 'book')
@@ -648,7 +648,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 related_data = list(nested_dict.values())
 
         # Group by parent PK (FK value is in result as attname, e.g., 'book_id')
-        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
+        result: dict[Any, list[dict[str, Any]]] = {pk: [] for pk in parent_pks}
         for row in related_data:
             parent_pk = row.get(fk_attname)
             if parent_pk in result:
@@ -664,12 +664,12 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         field: ForeignKey,
         nested_relations: list[str],
         parent_pks: list[Any],
-        parent_data: dict[Any, dict] | None,
+        parent_data: dict[Any, dict[str, Any]] | None,
         custom_qs: QuerySet | None,
-        main_results: list[dict] | None,
+        main_results: list[dict[str, Any]] | None,
         parent_path: str,
         parent_model: type[Model] | None = None,
-    ) -> dict[Any, dict | None]:
+    ) -> dict[Any, dict[str, Any] | None]:
         """Fetch FK data using compiler. Raw rows → dicts, no model instantiation."""
         related_model = field.related_model
         fk_attname = field.attname  # e.g., publisher_id
@@ -705,7 +705,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
         if has_select_related and custom_qs is None:
             # Extract data from nested dicts - no query needed
-            related_data: dict[Any, dict] = {}
+            related_data: dict[Any, dict[str, Any]] = {}
             for row in parent_data.values():  # type: ignore[union-attr]
                 nested = row.get(relation_name)
                 if isinstance(nested, dict) and nested.get(related_pk_name) is not None:
@@ -737,7 +737,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             )
 
         # Map parent_pk to related data
-        result: dict[Any, dict | None] = {}
+        result: dict[Any, dict[str, Any] | None] = {}
         for parent_pk in parent_pks:
             fk_value = fk_data.get(parent_pk)
             result[parent_pk] = dict(related_data[fk_value]) if fk_value in related_data else None
@@ -751,9 +751,9 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         parent_pks: list[Any],
         parent_model: type[Model],
         custom_qs: QuerySet | None,
-        main_results: list[dict] | None,
+        main_results: list[dict[str, Any]] | None,
         parent_path: str,
-    ) -> dict[Any, list[dict]]:
+    ) -> dict[Any, list[dict[str, Any]]]:
         """Internal helper to fetch GenericRelation data - used by top-level and nested."""
         related_model = field.related_model
         ct_field_name = field.content_type_field_name
@@ -784,7 +784,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             )
             related_data = list(nested_dict.values())
 
-        result: dict[Any, list[dict]] = {pk: [] for pk in parent_pks}
+        result: dict[Any, list[dict[str, Any]]] = {pk: [] for pk in parent_pks}
         for row in related_data:
             parent_pk = row[obj_id_field_name]
             row_dict = dict(row)
@@ -798,8 +798,8 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         self,
         lookup: GenericPrefetch,
         parent_pks: list[Any],
-        main_results: list[dict],
-    ) -> dict[Any, dict | None]:
+        main_results: list[dict[str, Any]],
+    ) -> dict[Any, dict[str, Any] | None]:
         """Fetch GenericForeignKey data using GenericPrefetch.
 
         GenericForeignKey can point to different model types. GenericPrefetch
@@ -841,7 +841,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             ct_to_queryset[ct.id] = qs
 
         # Fetch objects for each content type
-        result: dict[Any, dict | None] = dict.fromkeys(parent_pks)
+        result: dict[Any, dict[str, Any] | None] = dict.fromkeys(parent_pks)
 
         for ct_id, parent_obj_pairs in ct_to_parents.items():
             if ct_id not in ct_to_queryset:
@@ -888,8 +888,8 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         model: type[Model],
         prefetch_lookups: tuple,
         parent_pks: list[Any],
-        main_results: list[dict],
-    ) -> dict[str, dict[Any, list[dict] | dict | None]]:
+        main_results: list[dict[str, Any]],
+    ) -> dict[str, dict[Any, list[dict[str, Any]] | dict[str, Any] | None]]:
         """Fetch prefetched relations for a related model (used by GenericForeignKey)."""
         # Create a temporary mixin instance for the related model
         temp_qs = NestedValuesQuerySetMixin.__new__(NestedValuesQuerySetMixin)
@@ -902,10 +902,10 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
     def _add_nested_relations(  # noqa: PLR0913
         self,
         model: type[Model],
-        data: dict[Any, dict],
+        data: dict[Any, dict[str, Any]],
         nested_relations: list[str],
         parent_pks: list[Any],
-        main_results: list[dict] | None = None,
+        main_results: list[dict[str, Any]] | None = None,
         parent_path: str = "",
     ) -> None:
         """Fetch and add nested relation data to already-fetched parent data."""
@@ -938,11 +938,11 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         field: Any,
         nested_relations: list[str],
         parent_pks: list[Any],
-        main_results: list[dict] | None = None,
+        main_results: list[dict[str, Any]] | None = None,
         parent_path: str = "",
-        parent_data: dict[Any, dict] | None = None,
+        parent_data: dict[Any, dict[str, Any]] | None = None,
         custom_qs: QuerySet | None = None,
-    ) -> dict[Any, list[dict] | dict | None]:
+    ) -> dict[Any, list[dict[str, Any]] | dict[str, Any] | None]:
         """Dispatch to the appropriate fetch method based on field type."""
         if isinstance(field, ManyToManyField):
             return self._fetch_m2m_internal(
