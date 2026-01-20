@@ -26,6 +26,55 @@ else:
     _MixinBase = Generic
 
 
+def _build_dict_from_klass_info(
+    row: tuple[Any, ...],
+    klass_info: dict[str, Any],
+    select: list[tuple[Any, ...]],
+) -> dict[str, Any]:
+    """Build a dict for a model from a row using klass_info metadata.
+
+    This uses Django's internal compiler metadata to know exactly which
+    columns belong to which model, avoiding manual field path parsing.
+
+    Args:
+        row: A tuple of values from the database row
+        klass_info: The klass_info dict from compiler, containing:
+            - 'model': the model class
+            - 'select_fields': list of column indices for this model
+            - 'related_klass_infos': list of klass_info for select_related models
+        select: The compiler.select list, mapping indices to column expressions
+
+    Returns:
+        A dict with field names as keys and values from the row
+    """
+    result: dict[str, Any] = {}
+
+    # Extract fields for this model using select_fields indices
+    for idx in klass_info["select_fields"]:
+        col_expr = select[idx][0]
+        # Get the field name (attname gives us 'publisher_id' for FKs)
+        field_name = col_expr.target.attname
+        result[field_name] = row[idx]
+
+    # Process related models (from select_related)
+    for related_ki in klass_info.get("related_klass_infos", []):
+        # Get the relation name from the field
+        relation_name = related_ki["field"].name
+
+        # Check if the related object is NULL by checking if PK is None
+        # The first select_field is typically the PK
+        pk_idx = related_ki["select_fields"][0]
+        if row[pk_idx] is None:
+            # Related object doesn't exist (NULL FK)
+            continue
+
+        # Recursively build the nested dict
+        nested_dict = _build_dict_from_klass_info(row, related_ki, select)
+        result[relation_name] = nested_dict
+
+    return result
+
+
 class NestedValuesIterable(BaseIterable):
     """Iterable that yields nested dictionaries for QuerySet.values_nested().
 
@@ -39,6 +88,108 @@ class NestedValuesIterable(BaseIterable):
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         """Iterate over the queryset, yielding nested dictionaries."""
+        queryset = self.queryset
+        prefetch_lookups = queryset._prefetch_related_lookups  # type: ignore[attr-defined]
+
+        # Use the optimized compiler-based path when there's no prefetch_related
+        # This leverages Django's klass_info for select_related without manual field parsing
+        if not prefetch_lookups:
+            yield from self._iter_using_compiler()
+            return
+
+        # For queries with prefetch_related, use the legacy values()-based path
+        # (to be refactored in a future phase)
+        yield from self._iter_using_values()
+
+    def _iter_using_compiler(self) -> Iterator[dict[str, Any]]:
+        """Iterate using Django's compiler and klass_info metadata.
+
+        This approach leverages Django's internal query compilation to know exactly
+        which columns belong to which model, avoiding manual field path parsing.
+        """
+        queryset = self.queryset
+        db = queryset.db
+
+        # Build the queryset (applies select_related, only/defer, etc.)
+        main_qs = queryset._build_main_queryset()
+
+        # When using select_related with deferred loading, we need to ensure the FK
+        # fields for relations are NOT deferred. Otherwise Django raises:
+        # "Field X.y cannot be both deferred and traversed using select_related"
+        self._ensure_fk_fields_not_deferred(main_qs)
+
+        # Get the compiler - it knows the complete structure including select_related
+        compiler = main_qs.query.get_compiler(using=db)
+
+        # Execute the query
+        results = compiler.execute_sql(
+            chunked_fetch=self.chunked_fetch,
+            chunk_size=self.chunk_size,
+        )
+        if results is None:
+            return
+
+        # Get metadata for building nested dicts
+        select = compiler.select
+        klass_info = compiler.klass_info
+
+        if klass_info is None:
+            return
+
+        # Build nested dicts directly from rows using klass_info
+        for row in compiler.results_iter(results):
+            yield _build_dict_from_klass_info(row, klass_info, select)
+
+    def _ensure_fk_fields_not_deferred(self, qs: QuerySet) -> None:
+        """Ensure FK fields for select_related are not deferred.
+
+        When using .only() without the FK field and then select_related(),
+        Django would raise an error. This method clears deferral for FK fields
+        that are traversed via select_related.
+        """
+        select_related = qs.query.select_related
+        if not select_related:
+            return
+
+        deferred_fields, is_defer = qs.query.deferred_loading
+        if not deferred_fields:
+            return
+
+        # Get FK field names for select_related relations
+        if select_related is True:
+            # select_related() with no args - need all FK fields
+            fk_fields = {f.attname for f in qs.model._meta.concrete_fields if isinstance(f, ForeignKey)}
+        else:
+            # select_related is a dict like {'publisher': {}, 'author': {'publisher': {}}}
+            # We need the FK attnames for top-level relations
+            fk_fields = set()
+            for relation_name in select_related:
+                try:
+                    field = qs.model._meta.get_field(relation_name)
+                    if isinstance(field, ForeignKey):
+                        fk_fields.add(field.attname)
+                except FieldDoesNotExist:
+                    pass
+
+        if not fk_fields:
+            return
+
+        # Modify deferred loading to include FK fields
+        if is_defer:
+            # .defer() was used - remove FK fields from deferred set
+            new_deferred = deferred_fields - fk_fields
+            qs.query.deferred_loading = (new_deferred, True)
+        else:
+            # .only() was used - add FK fields to included set
+            new_only = deferred_fields | fk_fields
+            qs.query.deferred_loading = (new_only, False)
+
+    def _iter_using_values(self) -> Iterator[dict[str, Any]]:
+        """Iterate using the legacy values()-based approach.
+
+        This path is used when prefetch_related is needed, as the prefetch
+        logic currently depends on flat dict results from .values().
+        """
         queryset = self.queryset
 
         # Determine which fields to fetch based on .only() / .defer()
