@@ -49,26 +49,19 @@ def _build_dict_from_klass_info(
     """
     result: dict[str, Any] = {}
 
-    # Extract fields for this model using select_fields indices
     for idx in klass_info["select_fields"]:
         col_expr = select[idx][0]
-        # Get the field name (attname gives us 'publisher_id' for FKs)
-        field_name = col_expr.target.attname
+        field_name = col_expr.target.attname  # attname gives 'publisher_id' for FKs
         result[field_name] = row[idx]
 
-    # Process related models (from select_related)
     for related_ki in klass_info.get("related_klass_infos", []):
-        # Get the relation name from the field
         relation_name = related_ki["field"].name
 
-        # Check if the related object is NULL by checking if PK is None
-        # The first select_field is typically the PK
+        # Check if related object is NULL (first select_field is typically the PK)
         pk_idx = related_ki["select_fields"][0]
         if row[pk_idx] is None:
-            # Related object doesn't exist (NULL FK)
             continue
 
-        # Recursively build the nested dict
         nested_dict = _build_dict_from_klass_info(row, related_ki, select)
         result[relation_name] = nested_dict
 
@@ -149,10 +142,7 @@ def _execute_prefetch_as_dicts(
     extra_values = []
 
     for row in compiler.results_iter(results):
-        # Build the model dict from klass_info
         row_dict = _build_dict_from_klass_info(row, klass_info, select)
-
-        # Extract extra column values for grouping
         extra_vals = {alias: row[idx] for idx, alias in extra_indices}
 
         dicts.append(row_dict)
@@ -178,18 +168,10 @@ class NestedValuesIterable(BaseIterable):
         db = queryset.db
         prefetch_lookups = queryset._prefetch_related_lookups  # type: ignore[attr-defined]
 
-        # Build the queryset (applies select_related, only/defer, etc.)
         main_qs = queryset._build_main_queryset()
-
-        # When using select_related with deferred loading, we need to ensure the FK
-        # fields for relations are NOT deferred. Otherwise Django raises:
-        # "Field X.y cannot be both deferred and traversed using select_related"
         self._ensure_fk_fields_not_deferred(main_qs)
 
-        # Get the compiler - it knows the complete structure including select_related
         compiler = main_qs.query.get_compiler(using=db)
-
-        # Execute the query
         results = compiler.execute_sql(
             chunked_fetch=self.chunked_fetch,
             chunk_size=self.chunk_size,
@@ -197,32 +179,23 @@ class NestedValuesIterable(BaseIterable):
         if results is None:
             return
 
-        # Get metadata for building nested dicts
         select = compiler.select
         klass_info = compiler.klass_info
-
         if klass_info is None:
             return
 
-        # Build nested dicts directly from rows using klass_info
         main_results = [_build_dict_from_klass_info(row, klass_info, select) for row in compiler.results_iter(results)]
-
         if not main_results:
             return
 
-        # If no prefetch, just yield the results
         if not prefetch_lookups:
             yield from main_results
             return
 
-        # Get PKs for prefetch queries
         pk_name = queryset.model._meta.pk.name
         pk_values = [r[pk_name] for r in main_results]
-
-        # Fetch prefetched relations
         prefetched_data = queryset._fetch_all_prefetched(prefetch_lookups, pk_values, main_results)
 
-        # Merge prefetched data into results and yield
         for row in main_results:
             pk = row[pk_name]
             for attr_name, data_by_pk in prefetched_data.items():
@@ -238,21 +211,17 @@ class NestedValuesIterable(BaseIterable):
         parts = attr_path.split("__")
         target = row
 
-        # Navigate to the parent dict
         for part in parts[:-1]:
             if part in target and isinstance(target[part], dict):
                 target = target[part]
             else:
-                # Path doesn't exist or isn't a dict, set at top level
                 row[attr_path] = value
                 return
 
-        # Set the final value
         final_key = parts[-1]
         if final_key in target:
             existing = target[final_key]
             if isinstance(existing, dict) and isinstance(value, dict):
-                # Recursively merge dicts
                 self._merge_dicts(existing, value)
             # Otherwise keep existing (select_related takes precedence)
         else:
@@ -305,13 +274,10 @@ class NestedValuesIterable(BaseIterable):
         if not fk_fields:
             return
 
-        # Modify deferred loading to include FK fields
         if is_defer:
-            # .defer() was used - remove FK fields from deferred set
             new_deferred = deferred_fields - fk_fields
             qs.query.deferred_loading = (new_deferred, True)
         else:
-            # .only() was used - add FK fields to included set
             new_only = deferred_fields | fk_fields
             qs.query.deferred_loading = (new_only, False)
 
@@ -365,8 +331,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
     ) -> dict[str, dict[Any, list[dict[str, Any]] | dict[str, Any] | None]]:
         """Fetch all prefetched relations."""
         result: dict[str, dict[Any, list[dict[str, Any]] | dict[str, Any] | None]] = {}
-
-        # Group lookups by top-level relation name
         lookup_map = self._group_prefetch_lookups(prefetch_lookups)
 
         for attr_name, lookup_info in lookup_map.items():
@@ -374,7 +338,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             nested = lookup_info["nested"]
 
             if lookup_info.get("is_generic_fk"):
-                # Handle GenericForeignKey via GenericPrefetch
                 result[attr_name] = self._fetch_generic_fk_values(  # type: ignore[assignment]
                     lookup,
                     parent_pks,
@@ -397,34 +360,27 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
         for lookup in prefetch_lookups:
             if isinstance(lookup, GenericPrefetch):
-                # GenericPrefetch for GenericForeignKey
                 attr_name = lookup.to_attr or lookup.prefetch_to
                 result[attr_name] = {"lookup": lookup, "nested": [], "is_generic_fk": True}
             elif isinstance(lookup, Prefetch):
-                # Get the attribute name (to_attr or top-level relation)
                 to_attr, _ = lookup.get_current_to_attr(0)
                 attr_name = to_attr or lookup.prefetch_to.split("__")[0]
                 relation_path = lookup.prefetch_through if to_attr else lookup.prefetch_to
 
-                # Track nested relations
                 if attr_name not in result:
                     result[attr_name] = {"lookup": lookup, "nested": []}
 
-                # Check for nested parts (e.g., "books__chapters" -> "chapters" is nested under "books")
                 if "__" in relation_path:
                     parts = relation_path.split("__", 1)
                     if parts[0] == attr_name or attr_name == parts[0]:
                         result[attr_name]["nested"].append(parts[1])
             else:
-                # String lookup
                 attr_name = lookup.split("__")[0]
                 relation_path = lookup
 
-                # Track nested relations
                 if attr_name not in result:
                     result[attr_name] = {"lookup": lookup, "nested": []}
 
-                # Check for nested parts
                 if "__" in relation_path:
                     parts = relation_path.split("__", 1)
                     if parts[0] == attr_name:
@@ -441,7 +397,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         main_results: list[dict[str, Any]],
     ) -> dict[Any, list[dict[str, Any]] | dict[str, Any] | None]:
         """Fetch a related model's data and group by parent PK."""
-        # Get the actual relation name (may differ from attr_name if to_attr is used)
         relation_name = (
             lookup.prefetch_through.split("__")[0] if isinstance(lookup, Prefetch) else lookup.split("__")[0]
         )
@@ -526,19 +481,16 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
 
         related_pk_name = related_model._meta.pk.name
 
-        # Build queryset - filter related model where accessor contains parent PKs
         if custom_qs is not None:
             related_qs = custom_qs.filter(**{f"{accessor}__in": parent_pks})
         else:
             related_qs = related_model._default_manager.filter(**{f"{accessor}__in": parent_pks})
 
-        # Get the actual ManyToManyField (for ManyToManyRel, it's in .field)
         actual_field = m2m_field.field if isinstance(m2m_field, ManyToManyRel) else m2m_field
 
-        # Get through table info and add extra select for parent FK (matching Django's approach)
+        # Add extra select for parent FK (matching Django's prefetch approach)
         through_model = actual_field.remote_field.through
         assert through_model is not None  # noqa: S101
-        # Determine which FK to use: Forward M2M uses m2m_field_name(), Reverse M2M uses m2m_reverse_name()
         source_field_name = (
             actual_field.m2m_reverse_name() if isinstance(m2m_field, ManyToManyRel) else actual_field.m2m_field_name()
         )
@@ -551,28 +503,22 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         }
         related_qs = related_qs.extra(select=extra_select)  # noqa: S610  # safe: identifiers quoted via qn()
 
-        # Execute with compiler and extract model dicts + extra columns
         dicts, extra_values = _execute_prefetch_as_dicts(related_qs, self.db)
-
         if not dicts:
             return {pk: [] for pk in parent_pks}
 
-        # Group by parent PK (from extra column)
         result: dict[Any, list[dict[str, Any]]] = {pk: [] for pk in parent_pks}
         related_data: dict[Any, dict[str, Any]] = {}
 
         for row_dict, extra_vals in zip(dicts, extra_values, strict=True):
-            # Get parent PK from first extra column
             source_pk = next(iter(extra_vals.values())) if extra_vals else None
             if source_pk in result:
                 result[source_pk].append(row_dict)
 
-            # Track for nested relations
             related_pk = row_dict.get(related_pk_name)
             if nested_relations and related_pk not in related_data:
                 related_data[related_pk] = row_dict
 
-        # Handle nested relations
         if nested_relations and related_data:
             select_related_paths = self._get_select_related_from_queryset(custom_qs)
             remaining_nested = [rel for rel in nested_relations if rel.split("__")[0] not in select_related_paths]
@@ -586,7 +532,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                     main_results,
                     f"{full_path}__",
                 )
-                # Update results with nested data
                 for items in result.values():
                     for item in items:
                         pk_val = item.get(related_pk_name)
@@ -608,28 +553,21 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         main_results: list[dict[str, Any]] | None,
         parent_path: str,
     ) -> dict[Any, list[dict[str, Any]]]:
-        """Fetch reverse FK data using compiler. Raw rows → dicts, no model instantiation."""
+        """Fetch reverse FK data. Raw rows → dicts, no model instantiation."""
         related_pk_name = related_model._meta.pk.name
-        # Get the FK field's attname (e.g., 'book_id' for FK field 'book')
         fk_field = related_model._meta.get_field(fk_field_name)
-        fk_attname = fk_field.attname  # type: ignore[union-attr]
+        fk_attname = fk_field.attname  # type: ignore[union-attr]  # e.g., 'book_id'
 
-        # Build queryset - custom_qs already has select_related if specified
         if custom_qs is not None:
             related_qs = custom_qs.filter(**{f"{fk_field_name}__in": parent_pks})
         else:
             related_qs = related_model._default_manager.filter(**{f"{fk_field_name}__in": parent_pks})
 
-        # Execute with compiler - handles select_related automatically!
-        # Raw rows → dicts, no model instantiation
         related_data = _execute_queryset_as_dicts(related_qs, self.db)
-
         if not related_data:
             return {pk: [] for pk in parent_pks}
 
-        # Handle nested relations (prefetch within prefetch)
         if nested_relations:
-            # Get select_related paths to filter out already-handled relations
             select_related_paths = self._get_select_related_from_queryset(custom_qs)
             remaining_nested = [rel for rel in nested_relations if rel.split("__")[0] not in select_related_paths]
             if remaining_nested:
@@ -647,14 +585,12 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 )
                 related_data = list(nested_dict.values())
 
-        # Group by parent PK (FK value is in result as attname, e.g., 'book_id')
         result: dict[Any, list[dict[str, Any]]] = {pk: [] for pk in parent_pks}
         for row in related_data:
             parent_pk = row.get(fk_attname)
             if parent_pk in result:
                 row_dict = dict(row)
-                # Remove the FK attname from output (e.g., remove 'book_id')
-                row_dict.pop(fk_attname, None)
+                row_dict.pop(fk_attname, None)  # Remove FK attname from output
                 result[parent_pk].append(row_dict)
 
         return result
@@ -670,13 +606,12 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         parent_path: str,
         parent_model: type[Model] | None = None,
     ) -> dict[Any, dict[str, Any] | None]:
-        """Fetch FK data using compiler. Raw rows → dicts, no model instantiation."""
+        """Fetch FK data. Raw rows → dicts, no model instantiation."""
         related_model = field.related_model
-        fk_attname = field.attname  # e.g., publisher_id
-        relation_name = field.name  # e.g., publisher
+        fk_attname = field.attname
+        relation_name = field.name
         related_pk_name = related_model._meta.pk.name
 
-        # Extract FK values from parent_data or query if not available
         fk_data: dict[Any, Any] = {}
         if parent_data is not None:
             for pk, row in parent_data.items():
@@ -687,7 +622,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                         fk_value = fk_value.get(related_pk_name)
                 fk_data[pk] = fk_value
         elif parent_model is not None:
-            # Fallback: query the database for FK values
             parent_qs = parent_model._default_manager.filter(pk__in=parent_pks)
             pk_name = parent_model._meta.pk.name
             fk_data = {r[pk_name]: r[fk_attname] for r in parent_qs.values(pk_name, fk_attname)}
@@ -698,33 +632,28 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         if not fk_values:
             return dict.fromkeys(parent_pks)
 
-        # Check if data already exists via select_related (nested dict in parent_data)
         has_select_related = parent_data is not None and any(
             relation_name in row and isinstance(row.get(relation_name), dict) for row in parent_data.values()
         )
 
         if has_select_related and custom_qs is None:
-            # Extract data from nested dicts - no query needed
             related_data: dict[Any, dict[str, Any]] = {}
             for row in parent_data.values():  # type: ignore[union-attr]
                 nested = row.get(relation_name)
                 if isinstance(nested, dict) and nested.get(related_pk_name) is not None:
                     related_data[nested[related_pk_name]] = dict(nested)
         else:
-            # Query the related model using compiler - handles select_related automatically!
             if custom_qs is not None:
                 related_qs = custom_qs.filter(pk__in=fk_values)
             else:
                 related_qs = related_model._default_manager.filter(pk__in=fk_values)
 
-            # Execute with compiler - raw rows → dicts, no model instantiation
             results = _execute_queryset_as_dicts(related_qs, self.db)
             related_data = {r[related_pk_name]: r for r in results}
 
         if not related_data:
             return dict.fromkeys(parent_pks)
 
-        # Handle nested relations
         if nested_relations:
             full_path = f"{parent_path}{relation_name}__" if parent_path else f"{relation_name}__"
             self._add_nested_relations(
@@ -736,7 +665,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 full_path,
             )
 
-        # Map parent_pk to related data
         result: dict[Any, dict[str, Any] | None] = {}
         for parent_pk in parent_pks:
             fk_value = fk_data.get(parent_pk)
@@ -805,64 +733,49 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         GenericForeignKey can point to different model types. GenericPrefetch
         provides a list of querysets, one for each possible content type.
         """
-        gfk_attr = lookup.prefetch_to  # e.g., "content_object"
-
-        # Find the GenericForeignKey descriptor on the model to get field names
+        gfk_attr = lookup.prefetch_to
         gfk_descriptor = getattr(self.model, gfk_attr, None)
         if not isinstance(gfk_descriptor, GenericForeignKey):
             return dict.fromkeys(parent_pks)
 
-        ct_field = gfk_descriptor.ct_field  # e.g., "content_type"
-        fk_field = gfk_descriptor.fk_field  # e.g., "object_id"
-        ct_attname = f"{ct_field}_id"  # e.g., "content_type_id"
-
+        ct_field = gfk_descriptor.ct_field
+        fk_field = gfk_descriptor.fk_field
+        ct_attname = f"{ct_field}_id"
         pk_name = self.model._meta.pk.name
 
-        # Build mapping: parent_pk -> (content_type_id, object_id)
         parent_gfk_info: dict[Any, tuple[Any, Any]] = {}
         for row in main_results:
             parent_pk = row[pk_name]
-            ct_id = row.get(ct_attname)
-            obj_id = row.get(fk_field)
-            parent_gfk_info[parent_pk] = (ct_id, obj_id)
+            parent_gfk_info[parent_pk] = (row.get(ct_attname), row.get(fk_field))
 
-        # Group parent PKs by content_type_id
-        ct_to_parents: dict[Any, list[tuple[Any, Any]]] = {}  # ct_id -> [(parent_pk, object_id), ...]
+        ct_to_parents: dict[Any, list[tuple[Any, Any]]] = {}
         for parent_pk, (ct_id, obj_id) in parent_gfk_info.items():
             if ct_id is not None and obj_id is not None:
                 if ct_id not in ct_to_parents:
                     ct_to_parents[ct_id] = []
                 ct_to_parents[ct_id].append((parent_pk, obj_id))
 
-        # Build mapping: content_type_id -> queryset from GenericPrefetch
         ct_to_queryset: dict[int, QuerySet] = {}
         for qs in lookup.querysets:  # type: ignore[attr-defined]
             ct = ContentType.objects.get_for_model(qs.model)
             ct_to_queryset[ct.id] = qs
 
-        # Fetch objects for each content type
         result: dict[Any, dict[str, Any] | None] = dict.fromkeys(parent_pks)
 
         for ct_id, parent_obj_pairs in ct_to_parents.items():
             if ct_id not in ct_to_queryset:
-                # Content type not in the provided querysets - skip
                 continue
 
             qs = ct_to_queryset[ct_id]
             related_model = qs.model
             related_pk_name = related_model._meta.pk.name
-
-            # Get object IDs to fetch
             object_ids = [obj_id for _, obj_id in parent_obj_pairs]
 
-            # Fetch the related objects using compiler - no model instantiation
             related_qs = qs.filter(pk__in=object_ids)
             results = _execute_queryset_as_dicts(related_qs, self.db)
             related_data = {r[related_pk_name]: r for r in results}
 
-            # Handle nested prefetches on the GenericPrefetch queryset
             if qs._prefetch_related_lookups:  # type: ignore[attr-defined]
-                # The queryset has its own prefetch_related - we need to process those
                 nested_pks = list(related_data.keys())
                 if nested_pks:
                     nested_prefetched = self._fetch_prefetched_for_related(
@@ -871,12 +784,10 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                         nested_pks,
                         list(related_data.values()),
                     )
-                    # Merge nested data into related_data
                     for pk_val, row_data in related_data.items():
                         for attr, data_by_pk in nested_prefetched.items():
                             row_data[attr] = data_by_pk.get(pk_val, [])
 
-            # Map back to parent PKs
             for parent_pk, obj_id in parent_obj_pairs:
                 if obj_id in related_data:
                     result[parent_pk] = dict(related_data[obj_id])
@@ -891,7 +802,6 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         main_results: list[dict[str, Any]],
     ) -> dict[str, dict[Any, list[dict[str, Any]] | dict[str, Any] | None]]:
         """Fetch prefetched relations for a related model (used by GenericForeignKey)."""
-        # Create a temporary mixin instance for the related model
         temp_qs = NestedValuesQuerySetMixin.__new__(NestedValuesQuerySetMixin)
         temp_qs.model = model
         temp_qs.db = self.db
@@ -926,7 +836,7 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 parent_pks=parent_pks,
                 main_results=main_results,
                 parent_path=parent_path,
-                parent_data=data,  # Pass already-fetched parent data
+                parent_data=data,
             )
 
             for pk, row in data.items():
