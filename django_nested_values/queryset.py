@@ -452,66 +452,18 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             return {}
 
         custom_qs = lookup.queryset if isinstance(lookup, Prefetch) and lookup.queryset is not None else None
+        pk_name = self.model._meta.pk.name
 
-        # Dispatch to internal methods directly
-        if isinstance(field, ManyToManyField):
-            return self._fetch_m2m_internal(
-                cast("type[Model]", field.related_model),
-                field.related_query_name(),
-                field.name,
-                nested_relations,
-                parent_pks,
-                custom_qs,
-                main_results,
-                "",
-                field,
-            )  # type: ignore[return-value]
-        if isinstance(field, ManyToOneRel):
-            return self._fetch_reverse_fk_internal(
-                cast("type[Model]", field.related_model),
-                field.field.name,
-                field.get_accessor_name() or field.name,
-                nested_relations,
-                parent_pks,
-                custom_qs,
-                main_results,
-                "",
-            )  # type: ignore[return-value]
-        if isinstance(field, ForeignKey):
-            pk_name = self.model._meta.pk.name
-            return self._fetch_fk_internal(
-                field,
-                nested_relations,
-                parent_pks,
-                {r[pk_name]: r for r in main_results},
-                custom_qs,
-                main_results,
-                "",
-            )  # type: ignore[return-value]
-        if isinstance(field, ManyToManyRel):
-            return self._fetch_m2m_internal(
-                cast("type[Model]", field.related_model),
-                field.field.name,
-                field.get_accessor_name() or field.name,
-                nested_relations,
-                parent_pks,
-                custom_qs,
-                main_results,
-                "",
-                field,
-            )  # type: ignore[return-value]
-        if isinstance(field, GenericRelation):
-            return self._fetch_generic_relation_internal(
-                field,
-                nested_relations,
-                parent_pks,
-                self.model,
-                custom_qs,
-                main_results,
-                "",
-            )  # type: ignore[return-value]
-
-        return {}
+        return self._dispatch_relation_fetch(
+            parent_model=self.model,
+            field=field,
+            nested_relations=nested_relations,
+            parent_pks=parent_pks,
+            main_results=main_results,
+            parent_path="",
+            parent_data={r[pk_name]: r for r in main_results},
+            custom_qs=custom_qs,
+        )
 
     def _get_select_related_from_queryset(self, qs: QuerySet | None) -> dict[str, Any]:
         """Get select_related structure from a queryset.
@@ -967,40 +919,39 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
             except FieldDoesNotExist:
                 continue
 
-            nested_data = self._fetch_nested_relation(
-                model,
-                field,
-                rel_name,
-                further_nested,
-                parent_pks,
-                main_results,
-                parent_path,
-                data,  # Pass already-fetched parent data
+            nested_data = self._dispatch_relation_fetch(
+                parent_model=model,
+                field=field,
+                nested_relations=further_nested,
+                parent_pks=parent_pks,
+                main_results=main_results,
+                parent_path=parent_path,
+                parent_data=data,  # Pass already-fetched parent data
             )
 
             for pk, row in data.items():
                 row[rel_name] = nested_data.get(pk, [] if self._is_many_relation(field) else None)
 
-    def _fetch_nested_relation(  # noqa: PLR0913
+    def _dispatch_relation_fetch(  # noqa: PLR0913
         self,
         parent_model: type[Model],
         field: Any,
-        relation_name: str,
-        further_nested: list[str],
+        nested_relations: list[str],
         parent_pks: list[Any],
         main_results: list[dict] | None = None,
         parent_path: str = "",
         parent_data: dict[Any, dict] | None = None,
+        custom_qs: QuerySet | None = None,
     ) -> dict[Any, list[dict] | dict | None]:
-        """Fetch a nested relation for already-fetched data."""
+        """Dispatch to the appropriate fetch method based on field type."""
         if isinstance(field, ManyToManyField):
             return self._fetch_m2m_internal(
                 related_model=field.related_model,
                 accessor=field.related_query_name(),
                 relation_name=field.name,
-                nested_relations=further_nested,
+                nested_relations=nested_relations,
                 parent_pks=parent_pks,
-                custom_qs=None,
+                custom_qs=custom_qs,
                 main_results=main_results,
                 parent_path=parent_path,
                 m2m_field=field,
@@ -1010,19 +961,19 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 related_model=field.related_model,
                 fk_field_name=field.field.name,
                 relation_name=field.get_accessor_name() or field.name,
-                nested_relations=further_nested,
+                nested_relations=nested_relations,
                 parent_pks=parent_pks,
-                custom_qs=None,
+                custom_qs=custom_qs,
                 main_results=main_results,
                 parent_path=parent_path,
             )  # type: ignore[return-value]
         if isinstance(field, ForeignKey):
             return self._fetch_fk_internal(
                 field=field,
-                nested_relations=further_nested,
+                nested_relations=nested_relations,
                 parent_pks=parent_pks,
                 parent_data=parent_data,
-                custom_qs=None,
+                custom_qs=custom_qs,
                 main_results=main_results,
                 parent_path=parent_path,
                 parent_model=parent_model,
@@ -1032,9 +983,9 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
                 related_model=field.related_model,
                 accessor=field.field.name,
                 relation_name=field.get_accessor_name() or field.name,
-                nested_relations=further_nested,
+                nested_relations=nested_relations,
                 parent_pks=parent_pks,
-                custom_qs=None,
+                custom_qs=custom_qs,
                 main_results=main_results,
                 parent_path=parent_path,
                 m2m_field=field,
@@ -1042,10 +993,10 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
         if isinstance(field, GenericRelation):
             return self._fetch_generic_relation_internal(
                 field,
-                further_nested,
+                nested_relations,
                 parent_pks,
                 parent_model,
-                None,
+                custom_qs,
                 main_results,
                 parent_path,
             )  # type: ignore[return-value]
