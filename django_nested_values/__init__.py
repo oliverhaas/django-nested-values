@@ -6,4 +6,4 @@ from django_nested_values.queryset import (
 )
 
 __all__ = ["NestedValuesQuerySet", "NestedValuesQuerySetMixin"]
-__version__ = "0.7.0"
+__version__ = "1.0.0"
