@@ -62,19 +62,25 @@ class TestAttrDict:
         assert obj.get("b", "default") == "default"
 
     def test_nested_dict_wrapped(self):
-        """Nested dicts are wrapped as AttrDict."""
-        obj = AttrDict({"publisher": {"name": "Tech Books", "country": "USA"}})
+        """Nested dicts are wrapped as AttrDict when using .wrap()."""
+        obj = AttrDict.wrap({"publisher": {"name": "Tech Books", "country": "USA"}})
         assert isinstance(obj.publisher, AttrDict)
         assert obj.publisher.name == "Tech Books"
         assert obj.publisher["country"] == "USA"
 
     def test_nested_list_wrapped(self):
-        """Lists are wrapped as RelatedList."""
-        obj = AttrDict({"authors": [{"name": "John"}, {"name": "Jane"}]})
+        """Lists are wrapped as RelatedList when using .wrap()."""
+        obj = AttrDict.wrap({"authors": [{"name": "John"}, {"name": "Jane"}]})
         assert isinstance(obj.authors, RelatedList)
         assert len(obj.authors) == 2
         assert isinstance(obj.authors[0], AttrDict)
         assert obj.authors[0].name == "John"
+
+    def test_simple_init_no_nested_wrap(self):
+        """Basic AttrDict() does not wrap nested values."""
+        obj = AttrDict({"publisher": {"name": "Pub"}})
+        assert isinstance(obj.publisher, dict)
+        assert not isinstance(obj.publisher, AttrDict)
 
     def test_attribute_error_on_missing(self):
         """Accessing missing attribute raises AttributeError."""
