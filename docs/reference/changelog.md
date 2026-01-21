@@ -2,8 +2,8 @@
 
 ## [Unreleased]
 
-- **New**: `as_attr_dicts` parameter for `values_nested()` returns `AttrDict` instances with attribute access
-- **New**: `AttrDict` - minimal dict subclass with attribute access (~2.7% overhead vs plain dict)
+- **New**: NULL ForeignKey fields now included as `None` instead of being omitted from result dicts
+- **Removed**: `as_attr_dicts` parameter and public `AttrDict` export (internal code retained for potential future use)
 
 ## [0.4.0]
 

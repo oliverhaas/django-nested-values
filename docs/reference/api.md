@@ -56,10 +56,6 @@ Book.objects.published().by_author("John").prefetch_related("authors").values_ne
 
 Returns dictionaries with related objects included as nested dicts/lists.
 
-**Parameters:**
-
-- `as_attr_dicts` (bool, default `False`): If `True`, returns `AttrDict` instances instead of plain dicts.
-
 Use standard Django methods to control the output:
 
 - `.only()` - Select which fields to include
@@ -181,38 +177,3 @@ Book.objects.prefetch_related(
 ).values_nested()
 # {"id": 1, "title": "...", "first_chapter": [{"id": 1, "title": "Introduction"}]}
 ```
-
-## Attribute-Style Access
-
-### as_attr_dicts Parameter
-
-Use `as_attr_dicts=True` to get `AttrDict` instances instead of plain dicts:
-
-```python
-books = Book.objects.select_related("publisher").prefetch_related("authors").values_nested(as_attr_dicts=True)
-for book in books:
-    print(book.title)           # Attribute access
-    print(book["title"])        # Dict access still works
-    print(book.publisher.name)  # Nested attribute access
-    for author in book.authors:
-        print(author.name)      # Nested lists contain AttrDicts too
-```
-
-### AttrDict
-
-A dict subclass that supports both attribute access (`obj.field`) and dict access (`obj["field"]`).
-
-```python
-from django_nested_values import AttrDict
-
-obj = AttrDict({"title": "Django"})
-obj.title           # "Django"
-obj["title"]        # "Django"
-isinstance(obj, dict)  # True - it's a real dict subclass
-```
-
-Since `AttrDict` inherits from `dict`, all standard dict operations work:
-
-- `keys()`, `values()`, `items()`, `get()`, etc.
-- JSON serialization works directly
-- Can be passed anywhere a dict is expected

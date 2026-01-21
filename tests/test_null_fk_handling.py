@@ -39,27 +39,6 @@ class TestNullFKHandling:
         assert "editor" in result[0], "NULL FK should be present in dict"
         assert result[0]["editor"] is None
 
-    def test_null_fk_included_as_none_in_attrdict(self):
-        """NULL FK fields should appear as None in AttrDict, not raise AttributeError."""
-        publisher = Publisher.objects.create(name="Test Publisher", country="USA")
-        book = Book.objects.create(
-            title="Orphan Book",
-            isbn="1111111111111",
-            price=Decimal("19.99"),
-            published_date=date(2024, 1, 1),
-            publisher=publisher,
-            editor=None,  # NULL FK
-        )
-
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(
-            qs.filter(id=book.id).select_related("editor").values_nested(as_attr_dicts=True),
-        )
-
-        assert len(result) == 1
-        # Should NOT raise AttributeError - editor should exist as None
-        assert result[0].editor is None
-
     def test_non_null_fk_still_works(self):
         """Non-NULL FK fields should still be nested properly."""
         publisher = Publisher.objects.create(name="Test Publisher", country="USA")
@@ -74,12 +53,10 @@ class TestNullFKHandling:
         )
 
         qs = NestedValuesQuerySet(model=Book)
-        result = list(
-            qs.filter(id=book.id).select_related("editor").values_nested(as_attr_dicts=True),
-        )
+        result = list(qs.filter(id=book.id).select_related("editor").values_nested())
 
         assert len(result) == 1
-        assert result[0].editor.name == "Jane Editor"
+        assert result[0]["editor"]["name"] == "Jane Editor"
 
     def test_mixed_null_and_non_null_fks(self):
         """Test a query returning both NULL and non-NULL FKs."""

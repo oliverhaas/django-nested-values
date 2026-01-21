@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, Literal, Self, TypeVar, cast, overload
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar, cast
 
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
@@ -15,38 +15,8 @@ from django.db.models.query import BaseIterable
 # TypeVar for the model type, used for generic typing with django-stubs
 _ModelT_co = TypeVar("_ModelT_co", bound=Model, covariant=True)
 
-# Type alias for dict-like container classes
+# Type alias for dict-like container classes (kept for future custom container support)
 _ContainerType = type[dict[str, Any]]
-
-
-class AttrDict(dict[str, Any]):
-    """Dict subclass with attribute access - minimal overhead.
-
-    Inherits from dict so isinstance(x, dict) is True and all dict
-    operations work unchanged. Just adds __getattr__ for dot access.
-    """
-
-    __slots__ = ()
-
-    def __getattr__(self, name: str) -> Any:
-        """Get item as attribute."""
-        try:
-            return self[name]
-        except KeyError:
-            msg = f"'{type(self).__name__}' object has no attribute '{name}'"
-            raise AttributeError(msg) from None
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Set item as attribute."""
-        self[name] = value
-
-    def __delattr__(self, name: str) -> None:
-        """Delete item as attribute."""
-        try:
-            del self[name]
-        except KeyError:
-            msg = f"'{type(self).__name__}' object has no attribute '{name}'"
-            raise AttributeError(msg) from None
 
 
 if TYPE_CHECKING:
@@ -213,9 +183,8 @@ class NestedValuesIterable(BaseIterable):  # type: ignore[type-arg]
         if klass_info is None:
             return
 
-        # Choose container based on as_attr_dicts flag
-        as_attr_dicts = getattr(queryset, "_as_attr_dicts", False)
-        container: _ContainerType = AttrDict if as_attr_dicts else dict  # type: ignore[assignment]
+        # Container class for results (kept configurable for potential future use)
+        container: _ContainerType = dict
         pk_name = queryset.model._meta.pk.name
 
         # Build main results - unified path for both dict and AttrDict
@@ -322,48 +291,22 @@ class NestedValuesQuerySetMixin(_MixinBase[_ModelT_co]):
     """
 
     _nested_prefetch_lookups: tuple[Any, ...] = ()
-    _as_attr_dicts: bool = False
 
     def _clone(self) -> Self:
         """Clone the queryset, preserving our custom attributes."""
         clone: Self = super()._clone()  # type: ignore[misc]
         clone._nested_prefetch_lookups = self._nested_prefetch_lookups
-        clone._as_attr_dicts = self._as_attr_dicts
         return clone
 
-    @overload
-    def values_nested(
-        self,
-        *,
-        as_attr_dicts: Literal[False] = ...,
-    ) -> QuerySet[_ModelT_co, dict[str, Any]]: ...
-
-    @overload
-    def values_nested(
-        self,
-        *,
-        as_attr_dicts: Literal[True],
-    ) -> QuerySet[_ModelT_co, AttrDict]: ...
-
-    def values_nested(
-        self,
-        *,
-        as_attr_dicts: bool = False,
-    ) -> QuerySet[_ModelT_co, dict[str, Any]] | QuerySet[_ModelT_co, AttrDict]:
+    def values_nested(self) -> QuerySet[_ModelT_co, dict[str, Any]]:
         """Return nested dictionaries with related objects included.
 
-        Args:
-            as_attr_dicts: If True, return AttrDict instances instead of plain dicts.
-                AttrDict supports attribute access (book.title) in addition to
-                dict access (book["title"]).
-
         Returns:
-            A QuerySet that yields dict[str, Any] or AttrDict when iterated.
+            A QuerySet that yields dict[str, Any] when iterated.
 
         """
         clone: Self = self._clone()  # type: ignore[assignment]
         clone._iterable_class = NestedValuesIterable
-        clone._as_attr_dicts = as_attr_dicts
         clone._nested_prefetch_lookups = clone._prefetch_related_lookups  # type: ignore[attr-defined]
         clone._prefetch_related_lookups = ()  # type: ignore[attr-defined]
         return clone  # type: ignore[return-value]
@@ -998,8 +941,4 @@ class NestedValuesQuerySet(NestedValuesQuerySetMixin[_ModelT_co], QuerySet[_Mode
 
         Book.objects.select_related("publisher").prefetch_related("authors").values_nested()
         # Returns: [{'id': 1, 'title': '...', 'publisher': {...}, 'authors': [...]}, ...]
-
-    With attribute access:
-        Book.objects.values_nested(as_attr_dicts=True)
-        # Returns AttrDict instances: book.title, book.publisher.name work
     """
