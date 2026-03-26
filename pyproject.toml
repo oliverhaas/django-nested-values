@@ -35,13 +35,13 @@ dev = [
   "mypy==1.19.1",
   "pre-commit==4.5.1",
   "pytest==9.0.2",
-  "pytest-cov==7.0.0",
+  "pytest-cov==7.1.0",
   "pytest-django==4.12.0",
   "pytest-xdist==3.8.0",
-  "ruff==0.15.6",
-  "ty==0.0.23",
+  "ruff==0.15.7",
+  "ty==0.0.25",
 ]
-docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.5", "mike==2.1.4"]
+docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.6", "mike==2.1.4"]
 
 [build-system]
 requires = ["hatchling==1.29.0"]
