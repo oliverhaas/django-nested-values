@@ -31,20 +31,20 @@ Repository = "https://github.com/oliverhaas/django-nested-values.git"
 
 [dependency-groups]
 dev = [
-  "django-stubs==6.0.9",
-  "mypy==2.3.0",
-  "pre-commit==4.6.1",
+  "django-stubs==6.1.0",
+  "mypy==2.3.1",
+  "pre-commit==4.6.2",
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
-  "pytest-django==4.13.0",
+  "pytest-django==4.14.0",
   "pytest-xdist==3.8.0",
-  "ruff==0.16.2",
-  "ty==0.0.69",
+  "ruff==0.16.3",
+  "ty==0.0.72",
 ]
 docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.7", "mike==2.2.0"]
 
 [build-system]
-requires = ["hatchling==1.31.0"]
+requires = ["hatchling==1.32.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
