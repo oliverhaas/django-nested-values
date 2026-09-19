@@ -1,11 +1,12 @@
 # Django Nested Values
 
-An experimental package that adds `.values_nested()` to Django querysets, returning nested dictionaries with related objects included.
+Adds `.values_nested()` to Django querysets. Rows come back as dictionaries with the `select_related()` and `prefetch_related()` data nested inside, built straight from the database rows without model instances.
 
 ## Quick Example
 
 ```python
 from django_nested_values import NestedValuesQuerySet
+
 
 class Book(models.Model):
     title = models.CharField(max_length=200)
@@ -14,7 +15,7 @@ class Book(models.Model):
 
     objects = NestedValuesQuerySet.as_manager()
 
-# Returns dicts with nested related data
+
 books = (
     Book.objects
     .only("title")
@@ -22,17 +23,18 @@ books = (
     .prefetch_related("authors")
     .values_nested()
 )
-# [{"id": 1, "title": "...", "publisher": {"id": 1, "name": "..."}, "authors": [...]}, ...]
+# [{"id": 1, "title": "...", "publisher_id": 1, "publisher": {"id": 1, "name": "..."}, "authors": [...]}, ...]
 ```
 
-## Key Features
+## What You Get
 
-- **Familiar API**: Uses standard Django patterns (`only()`, `select_related()`, `prefetch_related()`)
-- **ForeignKey via JOIN**: `select_related()` uses efficient single-query JOINs
-- **M2M/Reverse FK via prefetch**: `prefetch_related()` for multi-valued relations
-- **No model instantiation**: Returns dicts directly from the database
+- The queryset API you already use: `only()`, `defer()`, `select_related()`, `prefetch_related()`, `Prefetch`, `GenericPrefetch`, slicing, `iterator()` and `async for`.
+- Foreign keys and one-to-one relations joined into the main query with `select_related()`.
+- Many-to-many, reverse foreign key, generic relations and generic foreign keys with `prefetch_related()`, one query per lookup, the same query count as Django's `prefetch_related()` on model instances.
+- Plain dicts straight from the database rows.
 
 ## Requirements
 
 - Python 3.13+
 - Django 5.2+
+- `django.contrib.contenttypes` in `INSTALLED_APPS`

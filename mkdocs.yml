@@ -1,6 +1,6 @@
 site_name: Django Nested Values
 site_url: https://oliverhaas.github.io/django-nested-values/
-site_description: Enable .prefetch_related().values_nested() in Django ORM
+site_description: Nested dictionaries from Django querysets with values_nested()
 repo_name: oliverhaas/django-nested-values
 repo_url: https://github.com/oliverhaas/django-nested-values
 
