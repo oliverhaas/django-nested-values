@@ -3,7 +3,8 @@ name = "django-nested-values"
 version = "1.0.0"
 description = "Add .values_nested() to Django querysets for nested prefetch dictionaries"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.13"
 keywords = ["django", "orm", "nested", "values", "queryset", "prefetch_related"]
 authors = [{ name = "Oliver Haas", email = "ohaas@e1plus.de" }]
@@ -12,8 +13,8 @@ classifiers = [
   "Framework :: Django",
   "Framework :: Django :: 5.2",
   "Framework :: Django :: 6.0",
+  "Framework :: Django :: 6.1",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.13",
@@ -44,7 +45,7 @@ dev = [
 docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.7", "mike==2.2.0"]
 
 [build-system]
-requires = ["hatchling==1.32.0"]
+requires = ["hatchling>=1.32.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
@@ -55,7 +56,7 @@ include = ["django_nested_values"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py314"
+target-version = "py313"
 extend-exclude = ["docs"]
 
 [tool.ruff.lint]
@@ -65,6 +66,9 @@ fixable = ["ALL"]
 ignore = [
   "ANN401", # Any needed for dynamic dict values and Django internals
   "COM812", # Conflicts with ruff-format
+  "CPY001", # No copyright notices in source files
+  "D203",   # Conflicts with D211
+  "D213",   # Conflicts with D212
   "E5",     # 120 char limit is sufficient
   "SLF001", # Private member access needed for Django internals
 ]
@@ -78,6 +82,7 @@ unfixable = []
   "ARG001",  # Pytest fixtures appear as unused arguments
   "ARG002",
   "D",       # Docstrings not required in tests
+  "DJ008",   # Test models do not need __str__
   "ERA001",  # Commented code in models is explanatory
   "N806",    # Dynamic class creation uses CamelCase variable names
   "PLC0415", # Lazy imports in fixtures and test setup
@@ -94,7 +99,6 @@ unfixable = []
   "DJ008",   # __str__ not needed for benchmark models
   "E402",    # Imports after django.setup() is required
   "ERA001",  # Commented code is explanatory
-  "INP001",  # Benchmarks don't need __init__.py in namespace
   "PERF401", # List comprehensions not always cleaner in benchmarks
   "PLC0415", # Lazy imports after django.setup()
   "PLR0913", # Too many arguments
@@ -110,10 +114,6 @@ unfixable = []
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 testpaths = ["tests"]
-markers = [
-  "unit: marks tests as unit tests",
-  "integration: marks tests as integration tests",
-]
 
 [tool.coverage.run]
 concurrency = ["thread"]
@@ -151,6 +151,8 @@ disallow_incomplete_defs = false
 [tool.django-stubs]
 django_settings_module = "tests.settings"
 
-[tool.ty.rules]
-# Ignore warnings about unused type: ignore comments (mypy needs them but ty doesn't)
-unused-ignore-comment = "ignore"
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false

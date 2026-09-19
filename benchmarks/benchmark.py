@@ -304,8 +304,10 @@ def main():
     print(f"  - values_nested(): {prefetch_values['mean_time'] * 1000:.2f}ms")
     print(f"  - Difference: {(normal['mean_time'] - prefetch_values['mean_time']) * 1000:.2f}ms")
 
-    # Memory comparison (rough)
-    print(f"\nQuery counts are identical: {normal['query_count']} queries each")
+    if normal["query_count"] == prefetch_values["query_count"]:
+        print(f"\nQuery counts are identical: {normal['query_count']} queries each")
+    else:
+        print(f"\nQuery counts differ: {normal['query_count']} vs {prefetch_values['query_count']}")
 
     return results
 
