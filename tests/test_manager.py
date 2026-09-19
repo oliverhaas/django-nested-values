@@ -1,66 +1,40 @@
-"""Tests for using NestedValuesQuerySet as a manager and mixin."""
+"""Tests for NestedValuesQuerySet as a manager and NestedValuesQuerySetMixin on custom querysets."""
 
-from __future__ import annotations
-
-from django.db import models
-from django.db.models import QuerySet
+from django.db.models import Manager, QuerySet
 
 from django_nested_values import NestedValuesQuerySet, NestedValuesQuerySetMixin
 from tests.testapp.models import Book
 
 
-class TestAsManager:
-    """Tests for using NestedValuesQuerySet as a manager."""
-
-    def test_as_manager(self, sample_data):
-        """Should work when used as a custom manager."""
-        CustomManager = models.Manager.from_queryset(NestedValuesQuerySet)
-
-        manager = CustomManager()
-        manager.model = Book
-        manager._db = None
-
-        qs = manager.get_queryset()
-        result = list(qs.only("title").prefetch_related("authors").values_nested())
-
-        assert len(result) == 3
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-        assert len(django_book["authors"]) == 2
+class BookQuerySet(NestedValuesQuerySetMixin, QuerySet):
+    def published_by(self, name):
+        return self.filter(publisher__name=name)
 
 
-class TestMixin:
-    """Tests for NestedValuesQuerySetMixin with custom querysets."""
+def manager_for(*, queryset_class):
+    manager = Manager.from_queryset(queryset_class)()
+    manager.model = Book
+    manager._db = None
+    return manager
 
-    def test_mixin_with_custom_queryset(self, sample_data):
-        """Mixin should work with custom QuerySet classes."""
 
-        class CustomQuerySet(NestedValuesQuerySetMixin, QuerySet):
-            def published_books(self):
-                return self.exclude(title__icontains="unpublished")
+def test_manager_from_queryset_supports_values_nested(sample_data):
+    manager = manager_for(queryset_class=NestedValuesQuerySet)
 
-        qs = CustomQuerySet(model=Book)
-        result = list(qs.published_books().only("title").prefetch_related("authors").values_nested())
+    row = manager.only("title").prefetch_related("authors").values_nested().get(title="Django for Beginners")
 
-        assert len(result) == 3
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-        assert len(django_book["authors"]) == 2
+    assert sorted(author["name"] for author in row["authors"]) == ["Jane Smith", "John Doe"]
 
-    def test_mixin_as_manager(self, sample_data):
-        """Mixin-based QuerySet should work as a manager."""
 
-        class CustomQuerySet(NestedValuesQuerySetMixin, QuerySet):
-            def by_publisher(self, name):
-                return self.filter(publisher__name=name)
+def test_mixin_on_custom_queryset(sample_data):
+    queryset = BookQuerySet(model=Book).published_by("Tech Books Inc").only("title").prefetch_related("authors")
 
-        CustomManager = models.Manager.from_queryset(CustomQuerySet)
+    assert {row["title"] for row in queryset.values_nested()} == {"Django for Beginners", "Advanced Python"}
 
-        manager = CustomManager()
-        manager.model = Book
-        manager._db = None
 
-        qs = manager.get_queryset()
-        result = list(qs.by_publisher("Tech Books Inc").only("title").prefetch_related("authors").values_nested())
+def test_mixin_queryset_as_manager(sample_data):
+    manager = manager_for(queryset_class=BookQuerySet)
 
-        assert len(result) == 2
-        titles = {r["title"] for r in result}
-        assert titles == {"Django for Beginners", "Advanced Python"}
+    rows = manager.published_by("Science Press").only("title").values_nested()
+
+    assert [row["title"] for row in rows] == ["Web Development Basics"]

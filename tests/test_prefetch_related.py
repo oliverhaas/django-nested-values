@@ -1,215 +1,219 @@
-"""Tests for prefetch_related() functionality with values_nested()."""
+"""Tests for prefetch_related() with values_nested()."""
 
-from __future__ import annotations
+from datetime import date
+from decimal import Decimal
 
-from django.db.models import Prefetch
+import pytest
+from django.db.models import Count, Prefetch
 
 from django_nested_values import NestedValuesQuerySet
-from tests.testapp.models import Author, Book, Chapter
+from tests.testapp.models import Author, Book, Chapter, Publisher
 
 
-class TestPrefetchRelatedManyToMany:
-    """Tests for ManyToMany relations using prefetch_related()."""
-
-    def test_prefetch_m2m_returns_nested_list(self, sample_data):
-        """prefetch_related() M2M should return nested list of dicts."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("authors").values_nested())
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        assert "authors" in django_book
-        assert isinstance(django_book["authors"], list)
-        assert len(django_book["authors"]) == 2
-
-        author_names = {a["name"] for a in django_book["authors"]}
-        assert author_names == {"John Doe", "Jane Smith"}
-
-    def test_prefetch_m2m_with_only_on_main(self, sample_data):
-        """prefetch_related() with only() on main model."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(qs.only("title").prefetch_related("authors").values_nested())
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        assert "title" in django_book
-        assert "authors" in django_book
-        # price should not be present
-        assert "price" not in django_book
-
-    def test_prefetch_m2m_with_prefetch_object_only(self, sample_data):
-        """Prefetch object with only() on related queryset."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(
-            qs.only("title")
-            .prefetch_related(Prefetch("authors", queryset=Author.objects.only("name")))
-            .values_nested(),
-        )
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        # authors should only have name (and id from only())
-        for author in django_book["authors"]:
-            assert "name" in author
-            assert "id" in author
-            assert "email" not in author
-
-    def test_prefetch_multiple_m2m(self, sample_data):
-        """Multiple M2M relations with prefetch_related()."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(qs.only("title").prefetch_related("authors", "tags").values_nested())
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        assert isinstance(django_book["authors"], list)
-        assert isinstance(django_book["tags"], list)
-        assert len(django_book["authors"]) == 2
-        assert len(django_book["tags"]) == 2
-
-        tag_names = {t["name"] for t in django_book["tags"]}
-        assert tag_names == {"Python", "Django"}
-
-    def test_prefetch_m2m_query_count(self, sample_data, django_assert_num_queries):
-        """prefetch_related() M2M should use 2 queries."""
-        qs = NestedValuesQuerySet(model=Book)
-
-        # Should be 2 queries: books + authors
-        with django_assert_num_queries(2):
-            result = list(qs.prefetch_related("authors").values_nested())
-            for book in result:
-                list(book["authors"])
+@pytest.fixture
+def edited_book(db):
+    publisher = Publisher.objects.create(name="P", country="X")
+    editor = Author.objects.create(name="Editor", email="editor@example.com")
+    writer = Author.objects.create(name="Writer", email="writer@example.com")
+    book = Book.objects.create(
+        title="Edited",
+        isbn="1",
+        price=Decimal("1.00"),
+        published_date=date(2024, 1, 1),
+        publisher=publisher,
+        editor=editor,
+    )
+    book.authors.add(writer)
+    return book
 
 
-class TestPrefetchRelatedReverseForeignKey:
-    """Tests for reverse ForeignKey (one-to-many) relations."""
+def test_m2m_is_list_of_dicts(sample_data):
+    row = NestedValuesQuerySet(model=Book).prefetch_related("authors").values_nested().get(title="Django for Beginners")
 
-    def test_prefetch_reverse_fk_returns_nested_list(self, sample_data):
-        """prefetch_related() reverse FK should return nested list of dicts."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("chapters").values_nested())
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        assert "chapters" in django_book
-        assert isinstance(django_book["chapters"], list)
-        assert len(django_book["chapters"]) == 3
-
-        # Chapters should be ordered by number (model has ordering)
-        chapter_titles = [c["title"] for c in django_book["chapters"]]
-        assert chapter_titles == ["Introduction", "Models", "Views"]
-
-    def test_prefetch_reverse_fk_with_prefetch_object_only(self, sample_data):
-        """Prefetch object with only() on reverse FK queryset."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(
-            qs.only("title")
-            .prefetch_related(Prefetch("chapters", queryset=Chapter.objects.only("title", "number")))
-            .values_nested(),
-        )
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        for chapter in django_book["chapters"]:
-            assert "title" in chapter
-            assert "number" in chapter
-            assert "page_count" not in chapter
-
-    def test_prefetch_empty_reverse_fk(self, sample_data):
-        """Books with no chapters should have empty list."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(qs.only("title").prefetch_related("chapters").values_nested())
-
-        web_book = next(r for r in result if r["title"] == "Web Development Basics")
-        assert web_book["chapters"] == []
+    assert sorted(author["name"] for author in row["authors"]) == ["Jane Smith", "John Doe"]
+    assert all(set(author) == {"id", "name", "email"} for author in row["authors"])
 
 
-class TestPrefetchRelatedForeignKey:
-    """Tests for ForeignKey using prefetch_related() (less efficient than select_related)."""
+def test_only_on_main_model_does_not_affect_related_rows(sample_data):
+    queryset = NestedValuesQuerySet(model=Book).only("title").prefetch_related("authors")
+    row = queryset.values_nested().get(title="Django for Beginners")
 
-    def test_prefetch_fk_returns_nested_dict(self, sample_data):
-        """prefetch_related() FK should return nested dict (not list)."""
-        qs = NestedValuesQuerySet(model=Book)
-        result = list(qs.prefetch_related("publisher").values_nested())
-
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
-
-        # publisher should be a dict, not a list
-        assert "publisher" in django_book
-        assert isinstance(django_book["publisher"], dict)
-        assert django_book["publisher"]["name"] == "Tech Books Inc"
-
-    def test_prefetch_fk_query_count(self, sample_data, django_assert_num_queries):
-        """prefetch_related() FK should use 2 queries (less efficient than select_related)."""
-        qs = NestedValuesQuerySet(model=Book)
-
-        # Should be 2 queries: books + publishers
-        with django_assert_num_queries(2):
-            result = list(qs.prefetch_related("publisher").values_nested())
-            for book in result:
-                _ = book["publisher"]
+    assert set(row) == {"id", "title", "authors"}
+    assert all(set(author) == {"id", "name", "email"} for author in row["authors"])
 
 
-class TestReverseManyToMany:
-    """Tests for reverse ManyToMany relations."""
+def test_prefetch_queryset_only_limits_related_fields(sample_data):
+    prefetch = Prefetch("authors", queryset=Author.objects.only("name"))
+    row = NestedValuesQuerySet(model=Book).prefetch_related(prefetch).values_nested().get(title="Django for Beginners")
 
-    def test_reverse_m2m_returns_nested_list(self, sample_data):
-        """Reverse M2M (Author.books) should return nested list of dicts."""
-        qs = NestedValuesQuerySet(model=Author)
-        result = list(qs.prefetch_related("books").values_nested())
-
-        john = next(r for r in result if r["name"] == "John Doe")
-
-        assert "books" in john
-        assert isinstance(john["books"], list)
-        assert len(john["books"]) == 2
-
-        book_titles = {b["title"] for b in john["books"]}
-        assert book_titles == {"Django for Beginners", "Web Development Basics"}
+    assert sorted(author["name"] for author in row["authors"]) == ["Jane Smith", "John Doe"]
+    assert all(set(author) == {"id", "name"} for author in row["authors"])
 
 
-class TestNestedPrefetch:
-    """Tests for nested/chained prefetch relations."""
+def test_multiple_m2m_lookups(sample_data):
+    queryset = NestedValuesQuerySet(model=Book).prefetch_related("authors", "tags")
+    row = queryset.values_nested().get(title="Django for Beginners")
 
-    def test_nested_prefetch(self, sample_data):
-        """Should support nested prefetching like books__chapters."""
-        qs = NestedValuesQuerySet(model=Author)
-        result = list(qs.only("name").prefetch_related("books__chapters").values_nested())
-
-        john = next(r for r in result if r["name"] == "John Doe")
-
-        assert isinstance(john["books"], list)
-        assert len(john["books"]) == 2
-
-        django_book = next(b for b in john["books"] if b["title"] == "Django for Beginners")
-        assert "chapters" in django_book
-        assert len(django_book["chapters"]) == 3
+    assert sorted(author["name"] for author in row["authors"]) == ["Jane Smith", "John Doe"]
+    assert sorted(tag["name"] for tag in row["tags"]) == ["Django", "Python"]
 
 
-class TestPrefetchObject:
-    """Tests for using Prefetch objects with custom querysets."""
+def test_m2m_prefetch_runs_one_extra_query(sample_data, django_assert_num_queries):
+    queryset = NestedValuesQuerySet(model=Book).prefetch_related("authors").values_nested()
 
-    def test_prefetch_object_with_filter(self, sample_data):
-        """Prefetch objects with filtered querysets."""
-        qs = NestedValuesQuerySet(model=Book)
-        prefetch = Prefetch("chapters", queryset=Chapter.objects.filter(page_count__gt=30))
-        result = list(qs.only("title").prefetch_related(prefetch).values_nested())
+    with django_assert_num_queries(2):
+        rows = list(queryset)
 
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
+    assert len(rows) == 3
 
-        # Only chapters with page_count > 30 (Models: 35, Views: 40)
-        assert len(django_book["chapters"]) == 2
-        chapter_titles = {c["title"] for c in django_book["chapters"]}
-        assert chapter_titles == {"Models", "Views"}
 
-    def test_prefetch_object_with_to_attr(self, sample_data):
-        """Prefetch objects with to_attr."""
-        qs = NestedValuesQuerySet(model=Book)
-        prefetch = Prefetch("chapters", queryset=Chapter.objects.filter(number=1), to_attr="first_chapter")
-        result = list(qs.only("title").prefetch_related(prefetch).values_nested())
+def test_reverse_fk_is_ordered_list(sample_data):
+    row = (
+        NestedValuesQuerySet(model=Book).prefetch_related("chapters").values_nested().get(title="Django for Beginners")
+    )
 
-        django_book = next(r for r in result if r["title"] == "Django for Beginners")
+    assert [chapter["title"] for chapter in row["chapters"]] == ["Introduction", "Models", "Views"]
 
-        assert "first_chapter" in django_book
-        assert isinstance(django_book["first_chapter"], list)
-        assert len(django_book["first_chapter"]) == 1
-        assert django_book["first_chapter"][0]["title"] == "Introduction"
+
+def test_reverse_fk_rows_omit_the_fk_column(sample_data):
+    row = (
+        NestedValuesQuerySet(model=Book).prefetch_related("chapters").values_nested().get(title="Django for Beginners")
+    )
+
+    assert all(set(chapter) == {"id", "title", "number", "page_count"} for chapter in row["chapters"])
+
+
+def test_reverse_fk_without_rows_is_empty_list(sample_data):
+    row = (
+        NestedValuesQuerySet(model=Book)
+        .prefetch_related("chapters")
+        .values_nested()
+        .get(title="Web Development Basics")
+    )
+
+    assert row["chapters"] == []
+
+
+def test_fk_via_prefetch_is_dict(sample_data):
+    row = (
+        NestedValuesQuerySet(model=Book).prefetch_related("publisher").values_nested().get(title="Django for Beginners")
+    )
+
+    assert row["publisher"] == {"id": row["publisher_id"], "name": "Tech Books Inc", "country": "USA"}
+
+
+def test_fk_prefetch_runs_one_extra_query(sample_data, django_assert_num_queries):
+    queryset = NestedValuesQuerySet(model=Book).prefetch_related("publisher").values_nested()
+
+    with django_assert_num_queries(2):
+        rows = list(queryset)
+
+    assert len(rows) == 3
+
+
+def test_reverse_m2m_is_list_of_dicts(sample_data):
+    row = NestedValuesQuerySet(model=Author).prefetch_related("books").values_nested().get(name="John Doe")
+
+    assert sorted(book["title"] for book in row["books"]) == ["Django for Beginners", "Web Development Basics"]
+
+
+def test_nested_lookup_attaches_at_each_level(sample_data):
+    row = NestedValuesQuerySet(model=Author).prefetch_related("books__chapters").values_nested().get(name="John Doe")
+
+    assert {book["title"]: len(book["chapters"]) for book in row["books"]} == {
+        "Django for Beginners": 3,
+        "Web Development Basics": 0,
+    }
+
+
+def test_prefetch_queryset_filter_is_applied(sample_data):
+    prefetch = Prefetch("chapters", queryset=Chapter.objects.filter(page_count__gt=30))
+    row = NestedValuesQuerySet(model=Book).prefetch_related(prefetch).values_nested().get(title="Django for Beginners")
+
+    assert [chapter["title"] for chapter in row["chapters"]] == ["Models", "Views"]
+
+
+def test_to_attr_names_the_key(sample_data):
+    prefetch = Prefetch("chapters", queryset=Chapter.objects.filter(number=1), to_attr="first_chapter")
+    row = NestedValuesQuerySet(model=Book).prefetch_related(prefetch).values_nested().get(title="Django for Beginners")
+
+    assert [chapter["title"] for chapter in row["first_chapter"]] == ["Introduction"]
+    assert "chapters" not in row
+
+
+def test_nested_prefetch_queryset_is_applied_at_its_level(sample_data):
+    prefetch = Prefetch("authors__books", queryset=Book.objects.filter(price__gt=30))
+    rows = NestedValuesQuerySet(model=Book).prefetch_related("authors", prefetch).values_nested()
+
+    titles = {book["title"] for row in rows for author in row["authors"] for book in author["books"]}
+    assert titles == {"Advanced Python"}
+
+
+def test_nested_to_attr_names_the_nested_key(sample_data):
+    prefetch = Prefetch("authors__books", to_attr="all_books")
+    row = (
+        NestedValuesQuerySet(model=Book)
+        .prefetch_related("authors", prefetch)
+        .values_nested()
+        .get(title="Advanced Python")
+    )
+
+    assert [sorted(book["title"] for book in author["all_books"]) for author in row["authors"]] == [
+        ["Advanced Python", "Web Development Basics"],
+    ]
+
+
+def test_prefetch_queryset_filtered_through_the_same_relation_reuses_the_join(sample_data):
+    prefetch = Prefetch("authors", queryset=Author.objects.filter(books__title__startswith="Web"))
+    rows = NestedValuesQuerySet(model=Book).prefetch_related(prefetch).values_nested()
+
+    assert {row["title"]: sorted(author["name"] for author in row["authors"]) for row in rows} == {
+        "Django for Beginners": [],
+        "Advanced Python": [],
+        "Web Development Basics": ["Bob Wilson", "John Doe"],
+    }
+
+
+def test_sliced_prefetch_queryset_limits_rows_per_parent(sample_data):
+    prefetch = Prefetch("authors", queryset=Author.objects.order_by("name")[:1], to_attr="first_author")
+    rows = NestedValuesQuerySet(model=Book).prefetch_related(prefetch).values_nested()
+
+    assert {row["title"]: [author["name"] for author in row["first_author"]] for row in rows} == {
+        "Django for Beginners": ["Jane Smith"],
+        "Advanced Python": ["Bob Wilson"],
+        "Web Development Basics": ["Bob Wilson"],
+    }
+
+
+def test_annotated_prefetch_queryset_keeps_the_annotation(sample_data):
+    prefetch = Prefetch("authors", queryset=Author.objects.annotate(book_count=Count("books")))
+    book = Book.objects.prefetch_related(prefetch).get(title="Django for Beginners")
+    row = NestedValuesQuerySet(model=Book).prefetch_related(prefetch).values_nested().get(title="Django for Beginners")
+
+    assert sorted((author["name"], author["book_count"]) for author in row["authors"]) == sorted(
+        (author.name, author.book_count) for author in book.authors.all()
+    )
+
+
+@pytest.mark.filterwarnings(r"ignore:Calling select_related\(\) with no arguments is deprecated")
+def test_select_related_without_arguments_in_prefetch_queryset_skips_nullable_fks(
+    edited_book,
+    django_assert_num_queries,
+):
+    prefetch = Prefetch("books", queryset=Book.objects.select_related())
+    queryset = NestedValuesQuerySet(model=Author).prefetch_related(prefetch, "books__editor").values_nested()
+
+    with django_assert_num_queries(3):
+        row = queryset.get(name="Writer")
+
+    assert row["books"][0]["publisher"]["name"] == "P"
+    assert row["books"][0]["editor"]["name"] == "Editor"
+
+
+def test_nested_lookup_continues_through_a_select_related_segment(edited_book):
+    prefetch = Prefetch("books", queryset=Book.objects.select_related("editor"))
+    queryset = NestedValuesQuerySet(model=Author).prefetch_related(prefetch, "books__editor__edited_books")
+    row = queryset.values_nested().get(name="Writer")
+
+    assert row["books"][0]["editor"]["name"] == "Editor"
+    assert [book["title"] for book in row["books"][0]["editor"]["edited_books"]] == ["Edited"]

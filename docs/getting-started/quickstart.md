@@ -75,7 +75,7 @@ result = list(
 ```python
 # Get all fields as nested dicts
 books = Book.objects.select_related("publisher").prefetch_related("authors").values_nested()
-# [{"id": 1, "title": "...", "publisher": {...}, "authors": [...]}, ...]
+# [{"id": 1, "title": "...", "publisher_id": 1, "publisher": {...}, "authors": [...]}, ...]
 
 # Control which fields with only()
 books = Book.objects.only("title").prefetch_related("authors").values_nested()
@@ -95,8 +95,9 @@ books = Book.objects.prefetch_related("publisher").values_nested()
 ```
 
 Both return the same nested structure:
+
 ```python
-{"id": 1, "title": "...", "publisher": {"id": 1, "name": "...", "country": "..."}}
+{"id": 1, "title": "...", "publisher_id": 1, "publisher": {"id": 1, "name": "...", "country": "..."}}
 ```
 
 ## ManyToMany and Reverse ForeignKey
@@ -108,9 +109,9 @@ For M2M and reverse FK, use `prefetch_related()`:
 books = Book.objects.prefetch_related("authors").values_nested()
 # {"id": 1, "title": "...", "authors": [{"id": 1, "name": "..."}, ...]}
 
-# Reverse ForeignKey
+# Reverse ForeignKey (the chapter rows omit the book_id column)
 books = Book.objects.prefetch_related("chapters").values_nested()
-# {"id": 1, "title": "...", "chapters": [{"id": 1, "title": "Chapter 1"}, ...]}
+# {"id": 1, "title": "...", "chapters": [{"id": 1, "title": "Chapter 1", "number": 1}, ...]}
 ```
 
 ## Controlling Related Fields
@@ -151,7 +152,7 @@ books = (
     .values_nested()
 )
 # Total: 3 queries
-# {"id": 1, "title": "...", "publisher": {...}, "authors": [...], "tags": [...]}
+# {"id": 1, "title": "...", "publisher_id": 1, "publisher": {...}, "authors": [...], "tags": [...]}
 ```
 
 ## Use Case: API Endpoints
@@ -166,6 +167,9 @@ The main use case is APIs where data gets passed to Pydantic models:
 ```python
 from ninja import NinjaAPI
 
+api = NinjaAPI()
+
+
 @api.get("/books", response=list[BookSchema])
 def list_books(request):
     return list(
@@ -179,7 +183,7 @@ def list_books(request):
 
 ## Benchmark
 
-The included benchmark (`benchmarks/benchmark.py`) tests fetching 1000 books with multiple relations. Both approaches use the same number of database queries.
+The included benchmark (`benchmarks/benchmark.py`) fetches 1000 books with several relations through model instances and through `values_nested()`. Both use the same number of database queries.
 
 ```bash
 uv run python benchmarks/benchmark.py

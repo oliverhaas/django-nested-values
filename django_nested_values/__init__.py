@@ -1,9 +1,6 @@
-"""Django Nested Values - Enable .prefetch_related().values_nested() in Django ORM."""
+"""Nested dictionaries from Django querysets through values_nested()."""
 
-from django_nested_values.queryset import (
-    NestedValuesQuerySet,
-    NestedValuesQuerySetMixin,
-)
+from django_nested_values.queryset import NestedValuesQuerySet, NestedValuesQuerySetMixin
 
 __all__ = ["NestedValuesQuerySet", "NestedValuesQuerySetMixin"]
-__version__ = "1.0.0"
+__version__ = "1.1.0"
