@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Enable .prefetch_related().values_nested() in Django ORM">
+        <meta name="description" content="Nested dictionaries from Django querysets with values_nested()">
       
       
       
@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -29,7 +29,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -548,10 +548,131 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#110" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [Unreleased]
+        [1.1.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [1.0.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.7.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0614" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.14]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#067-to-0613" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.7] to [0.6.13]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#066" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.6]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#064-and-065" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.4] and [0.6.5]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#063" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.3]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#061-and-062" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.1] and [0.6.2]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-to-053" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.5.0] to [0.5.3]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#041" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.4.1]
       
     </span>
   </a>
@@ -634,10 +755,131 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#110" class="md-nav__link">
     <span class="md-ellipsis">
       
-        [Unreleased]
+        [1.1.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#100" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [1.0.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#070" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.7.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0614" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.14]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#067-to-0613" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.7] to [0.6.13]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#066" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.6]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#064-and-065" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.4] and [0.6.5]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#063" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.3]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#061-and-062" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.1] and [0.6.2]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#060" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.6.0]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-to-053" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.5.0] to [0.5.3]
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#041" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        [0.4.1]
       
     </span>
   </a>
@@ -698,10 +940,68 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="unreleased">[Unreleased]<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="110">[1.1.0]<a class="headerlink" href="#110" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>New</strong>: NULL ForeignKey fields now included as <code>None</code> instead of being omitted from result dicts</li>
-<li><strong>Removed</strong>: <code>as_attr_dicts</code> parameter and public <code>AttrDict</code> export (internal code retained for potential future use)</li>
+<li><strong>New</strong>: Reverse one-to-one and multi-table inheritance links through <code>select_related()</code> and <code>prefetch_related()</code></li>
+<li><strong>New</strong>: <code>iterator(chunk_size=...)</code> prefetches each chunk; <code>aiterator()</code> and <code>async for</code> work on nested querysets</li>
+<li><strong>New</strong>: <code>annotate()</code> and <code>extra(select=...)</code> columns are included in the row dicts</li>
+<li><strong>New</strong>: <code>Prefetch</code> querysets with slicing, annotations, <code>select_related()</code> and nested <code>prefetch_related()</code>; <code>Prefetch</code> and <code>GenericPrefetch</code> on nested paths</li>
+<li><strong>New</strong>: Composite primary keys, <code>to_field</code> foreign keys, UUID primary keys in many-to-many relations, through models with <code>to_field</code></li>
+<li><strong>New</strong>: <code>only()</code> and <code>defer()</code> load the join column of <code>select_related()</code> targets and recover columns a <code>prefetch_related()</code> lookup needs with one extra query</li>
+<li><strong>Changed</strong>: <code>GenericPrefetch</code> fetches content types without a queryset by primary key, as Django does (was <code>None</code>)</li>
+<li><strong>Changed</strong>: Rows of reverse relations keep the back-reference column when it is part of the primary key</li>
+<li><strong>Changed</strong>: A <code>to_attr</code> that names a field raises <code>ValueError</code>; error messages match Django's <code>prefetch_related()</code></li>
+<li><strong>Support</strong>: Django 6.1; CI runs the free-threaded Python 3.14 build; PEP 639 license metadata</li>
+</ul>
+<h2 id="100">[1.0.0]<a class="headerlink" href="#100" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>New</strong>: NULL ForeignKey fields are included as <code>None</code> instead of being omitted from result dicts</li>
+<li><strong>Removed</strong>: <code>as_attr_dicts</code> parameter and public <code>AttrDict</code> export</li>
+</ul>
+<h2 id="070">[0.7.0]<a class="headerlink" href="#070" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>New</strong>: <code>values_nested(as_attr_dicts=True)</code> returns <code>AttrDict</code> objects with attribute access</li>
+</ul>
+<h2 id="0614">[0.6.14]<a class="headerlink" href="#0614" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Breaking</strong>: <code>NestedObject</code> renamed to <code>AttrDict</code>, <code>as_objects</code> renamed to <code>as_attr_dicts</code></li>
+</ul>
+<h2 id="067-to-0613">[0.6.7] to [0.6.13]<a class="headerlink" href="#067-to-0613" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Main, <code>select_related()</code>, ManyToMany and <code>GenericRelation</code> queries run through Django's SQL compiler</li>
+<li>Type annotations and mypy strict mode</li>
+</ul>
+<h2 id="066">[0.6.6]<a class="headerlink" href="#066" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>New</strong>: OFFSET/LIMIT slicing</li>
+<li><strong>New</strong>: <code>values_nested(as_objects=True)</code></li>
+</ul>
+<h2 id="064-and-065">[0.6.4] and [0.6.5]<a class="headerlink" href="#064-and-065" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Query counts match Django for ManyToMany and nested ManyToMany/ForeignKey prefetches</li>
+</ul>
+<h2 id="063">[0.6.3]<a class="headerlink" href="#063" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>New</strong>: <code>select_related()</code> inside <code>Prefetch</code> querysets</li>
+</ul>
+<h2 id="061-and-062">[0.6.1] and [0.6.2]<a class="headerlink" href="#061-and-062" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>New</strong>: <code>GenericForeignKey</code> through <code>GenericPrefetch</code>, including custom field names</li>
+</ul>
+<h2 id="060">[0.6.0]<a class="headerlink" href="#060" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>New</strong>: <code>GenericRelation</code> support</li>
+</ul>
+<h2 id="050-to-053">[0.5.0] to [0.5.3]<a class="headerlink" href="#050-to-053" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Fixed</strong>: <code>select_related()</code> data overwritten by an overlapping <code>prefetch_related()</code> lookup</li>
+<li><strong>Fixed</strong>: Nested <code>select_related()</code> path expansion</li>
+<li><strong>Fixed</strong>: Duplicate queries when combining <code>select_related()</code> and <code>prefetch_related()</code></li>
+<li><strong>Fixed</strong>: Duplicate queries for nested <code>select_related()</code> ForeignKeys</li>
+</ul>
+<h2 id="041">[0.4.1]<a class="headerlink" href="#041" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Breaking</strong>: <code>NestedValuesMixin</code> renamed to <code>NestedValuesQuerySetMixin</code></li>
 </ul>
 <h2 id="040">[0.4.0]<a class="headerlink" href="#040" title="Permanent link">&para;</a></h2>
 <ul>
@@ -783,7 +1083,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>

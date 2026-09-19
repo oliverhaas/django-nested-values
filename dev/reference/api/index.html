@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Enable .prefetch_related().values_nested() in Django ORM">
+        <meta name="description" content="Nested dictionaries from Django querysets with values_nested()">
       
       
       
@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -530,34 +530,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="NestedValuesQuerySet">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setup
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ad-hoc-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Ad-hoc Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -569,25 +541,25 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="NestedValuesQuerySetMixin">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#setup_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setup
-      
-    </span>
-  </a>
-  
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#values_nested" class="md-nav__link">
     <span class="md-ellipsis">
       
         values_nested()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="values_nested()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row Shape
       
     </span>
   </a>
@@ -612,43 +584,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#foreignkey-select_related" class="md-nav__link">
+  <a href="#genericforeignkey" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ForeignKey (select_related)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#foreignkey-prefetch_related" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ForeignKey (prefetch_related)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manytomany" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ManyToMany
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#reverse-foreignkey" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reverse ForeignKey
+        GenericForeignKey
       
     </span>
   </a>
@@ -661,22 +600,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#controlling-fields" class="md-nav__link">
+  <a href="#controlling-columns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Controlling Fields
+        Controlling Columns
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Controlling Fields">
+    <nav class="md-nav" aria-label="Controlling Columns">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#main-model-fields" class="md-nav__link">
+  <a href="#the-main-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Main Model Fields
+        The Main Model
       
     </span>
   </a>
@@ -684,10 +623,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#related-model-fields-select_related" class="md-nav__link">
+  <a href="#select_related-targets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Related Model Fields (select_related)
+        select_related() Targets
       
     </span>
   </a>
@@ -695,38 +634,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#related-model-fields-prefetch_related" class="md-nav__link">
+  <a href="#prefetch_related-targets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Related Model Fields (prefetch_related)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#query-efficiency" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Query Efficiency
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Query Efficiency">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#combined-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Combined Example
+        prefetch_related() Targets
       
     </span>
   </a>
@@ -743,6 +654,61 @@
     <span class="md-ellipsis">
       
         Prefetch Objects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#query-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query Counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#large-result-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large Result Sets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multiple-databases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Databases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
       
     </span>
   </a>
@@ -828,34 +794,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="NestedValuesQuerySet">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#setup" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setup
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#ad-hoc-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Ad-hoc Usage
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
       
         <li class="md-nav__item">
@@ -867,25 +805,25 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="NestedValuesQuerySetMixin">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#setup_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Setup
-      
-    </span>
-  </a>
-  
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#values_nested" class="md-nav__link">
     <span class="md-ellipsis">
       
         values_nested()
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="values_nested()">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#row-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Row Shape
       
     </span>
   </a>
@@ -910,43 +848,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#foreignkey-select_related" class="md-nav__link">
+  <a href="#genericforeignkey" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ForeignKey (select_related)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#foreignkey-prefetch_related" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ForeignKey (prefetch_related)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#manytomany" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ManyToMany
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#reverse-foreignkey" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reverse ForeignKey
+        GenericForeignKey
       
     </span>
   </a>
@@ -959,22 +864,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#controlling-fields" class="md-nav__link">
+  <a href="#controlling-columns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Controlling Fields
+        Controlling Columns
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Controlling Fields">
+    <nav class="md-nav" aria-label="Controlling Columns">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#main-model-fields" class="md-nav__link">
+  <a href="#the-main-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Main Model Fields
+        The Main Model
       
     </span>
   </a>
@@ -982,10 +887,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#related-model-fields-select_related" class="md-nav__link">
+  <a href="#select_related-targets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Related Model Fields (select_related)
+        select_related() Targets
       
     </span>
   </a>
@@ -993,38 +898,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#related-model-fields-prefetch_related" class="md-nav__link">
+  <a href="#prefetch_related-targets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Related Model Fields (prefetch_related)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#query-efficiency" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Query Efficiency
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Query Efficiency">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#combined-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Combined Example
+        prefetch_related() Targets
       
     </span>
   </a>
@@ -1041,6 +918,61 @@
     <span class="md-ellipsis">
       
         Prefetch Objects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#query-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Query Counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#large-result-sets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large Result Sets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multiple-databases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiple Databases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
       
     </span>
   </a>
@@ -1069,149 +1001,229 @@
 
 <h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
 <h2 id="nestedvaluesqueryset">NestedValuesQuerySet<a class="headerlink" href="#nestedvaluesqueryset" title="Permanent link">&para;</a></h2>
-<p>A ready-to-use QuerySet that adds <code>.values_nested()</code> to return nested dictionaries with related objects.</p>
-<p>Inherits from <code>NestedValuesQuerySetMixin</code> and <code>django.db.models.QuerySet</code>.</p>
-<h3 id="setup">Setup<a class="headerlink" href="#setup" title="Permanent link">&para;</a></h3>
+<p>A QuerySet with <code>values_nested()</code>. Use it as a manager, or instantiate it for a model you cannot change.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django_nested_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedValuesQuerySet</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyModel</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">objects</span> <span class="o">=</span> <span class="n">NestedValuesQuerySet</span><span class="o">.</span><span class="n">as_manager</span><span class="p">()</span>
-</code></pre></div>
-<h3 id="ad-hoc-usage">Ad-hoc Usage<a class="headerlink" href="#ad-hoc-usage" title="Permanent link">&para;</a></h3>
-<p>Use directly without modifying models:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django_nested_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedValuesQuerySet</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">qs</span> <span class="o">=</span> <span class="n">NestedValuesQuerySet</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Book</span><span class="p">)</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qs</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">())</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Book</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">objects</span> <span class="o">=</span> <span class="n">NestedValuesQuerySet</span><span class="o">.</span><span class="n">as_manager</span><span class="p">()</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Ad hoc, without touching the model</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">NestedValuesQuerySet</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">Book</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">())</span>
 </code></pre></div>
 <h2 id="nestedvaluesquerysetmixin">NestedValuesQuerySetMixin<a class="headerlink" href="#nestedvaluesquerysetmixin" title="Permanent link">&para;</a></h2>
-<p>A mixin class for adding <code>.values_nested()</code> to custom QuerySet classes.</p>
-<p>Use this when you have your own custom QuerySet and want to add <code>values_nested()</code> functionality.</p>
-<h3 id="setup_1">Setup<a class="headerlink" href="#setup_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuerySet</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django_nested_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedValuesQuerySetMixin</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyCustomQuerySet</span><span class="p">(</span><span class="n">NestedValuesQuerySetMixin</span><span class="p">,</span> <span class="n">QuerySet</span><span class="p">):</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">published</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">by_author</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">author_name</span><span class="p">):</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">authors__name</span><span class="o">=</span><span class="n">author_name</span><span class="p">)</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">Book</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">objects</span> <span class="o">=</span> <span class="n">MyCustomQuerySet</span><span class="o">.</span><span class="n">as_manager</span><span class="p">()</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># Use custom methods alongside values_nested()</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">published</span><span class="p">()</span><span class="o">.</span><span class="n">by_author</span><span class="p">(</span><span class="s2">&quot;John&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<p>Adds <code>values_nested()</code> to a custom QuerySet class. List it before <code>QuerySet</code> in the bases.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuerySet</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django_nested_values</span><span class="w"> </span><span class="kn">import</span> <span class="n">NestedValuesQuerySetMixin</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">BookQuerySet</span><span class="p">(</span><span class="n">NestedValuesQuerySetMixin</span><span class="p">,</span> <span class="n">QuerySet</span><span class="p">):</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">published</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_published</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">Book</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">objects</span> <span class="o">=</span> <span class="n">BookQuerySet</span><span class="o">.</span><span class="n">as_manager</span><span class="p">()</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">published</span><span class="p">()</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
 </code></pre></div>
-<h3 id="values_nested">values_nested()<a class="headerlink" href="#values_nested" title="Permanent link">&para;</a></h3>
-<p>Returns dictionaries with related objects included as nested dicts/lists.</p>
-<p>Use standard Django methods to control the output:</p>
+<h2 id="values_nested">values_nested()<a class="headerlink" href="#values_nested" title="Permanent link">&para;</a></h2>
+<p>Returns a queryset that yields one dict per row instead of a model instance. Each dict holds the concrete columns of the row plus one key per relation named in <code>select_related()</code> or <code>prefetch_related()</code>. <code>values_nested()</code> takes no arguments; the usual queryset methods shape the output:</p>
 <ul>
-<li><code>.only()</code> - Select which fields to include</li>
-<li><code>.select_related()</code> - Include ForeignKey relations (single dict)</li>
-<li><code>.prefetch_related()</code> - Include M2M/reverse FK relations (list of dicts)</li>
+<li><code>only()</code> and <code>defer()</code> choose the columns. The primary key is always included.</li>
+<li><code>select_related()</code> nests a foreign key or one-to-one target as a dict, in the same query.</li>
+<li><code>prefetch_related()</code> nests any relation Django can prefetch, one extra query per lookup.</li>
+<li><code>annotate()</code> and <code>extra(select=...)</code> add their columns to the dict.</li>
+<li><code>filter()</code>, <code>order_by()</code>, slicing, <code>first()</code>, <code>get()</code>, <code>count()</code>, <code>iterator()</code> and async iteration work as usual.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># All fields, no relations</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># [{&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;isbn&quot;: &quot;...&quot;, ...}, ...]</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Selected fields with relations</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># [{&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;publisher&quot;: {...}, &quot;authors&quot;: [...]}, ...]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># [{&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;isbn&quot;: &quot;...&quot;, &quot;price&quot;: Decimal(&quot;29.99&quot;), &quot;published_date&quot;: date(2024, 1, 15), &quot;publisher_id&quot;: 1, &quot;editor_id&quot;: None}, ...]</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># [{&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;publisher_id&quot;: 1, &quot;publisher&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;, &quot;country&quot;: &quot;...&quot;}, &quot;authors&quot;: [{&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;, &quot;email&quot;: &quot;...&quot;}]}, ...]</span>
 </code></pre></div>
+<p><code>values_nested()</code> raises <code>TypeError</code> when called after <code>values()</code> or <code>values_list()</code>.</p>
+<h3 id="row-shape">Row Shape<a class="headerlink" href="#row-shape" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Foreign key columns keep their database name (<code>publisher_id</code>), also when the relation is nested next to them.</li>
+<li>A <code>NULL</code> foreign key gives <code>None</code> for the column and <code>None</code> for the nested dict.</li>
+<li>Single-valued relations (foreign key, one-to-one in either direction, <code>GenericForeignKey</code>) nest as a dict or <code>None</code>.</li>
+<li>Multi-valued relations (many-to-many in either direction, reverse foreign key, <code>GenericRelation</code>) nest as a list of dicts, in the order of the related model's default ordering or of the <code>Prefetch</code> queryset.</li>
+<li>Rows of a reverse foreign key or <code>GenericRelation</code> omit the column that points back at the parent (<code>book_id</code>, or <code>content_type_id</code> and <code>object_id</code>), unless that column is part of the related model's primary key.</li>
+<li>Nested dicts follow the same rules, so <code>prefetch_related("authors__books")</code> nests a list of books inside every author.</li>
+</ul>
 <h2 id="relation-types">Relation Types<a class="headerlink" href="#relation-types" title="Permanent link">&para;</a></h2>
-<h3 id="foreignkey-select_related">ForeignKey (select_related)<a class="headerlink" href="#foreignkey-select_related" title="Permanent link">&para;</a></h3>
-<p>Use <code>select_related()</code> for efficient single-query JOINs. Returns a nested <strong>dict</strong>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;publisher&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;, &quot;country&quot;: &quot;...&quot;}}</span>
-</code></pre></div>
-<h3 id="foreignkey-prefetch_related">ForeignKey (prefetch_related)<a class="headerlink" href="#foreignkey-prefetch_related" title="Permanent link">&para;</a></h3>
-<p>Also supported but less efficient (2 queries instead of 1). Returns a nested <strong>dict</strong>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;publisher&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;, &quot;country&quot;: &quot;...&quot;}}</span>
-</code></pre></div>
-<h3 id="manytomany">ManyToMany<a class="headerlink" href="#manytomany" title="Permanent link">&para;</a></h3>
-<p>Use <code>prefetch_related()</code>. Returns a <strong>list of dicts</strong>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;authors&quot;: [{&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;}, {&quot;id&quot;: 2, &quot;name&quot;: &quot;...&quot;}]}</span>
-</code></pre></div>
-<h3 id="reverse-foreignkey">Reverse ForeignKey<a class="headerlink" href="#reverse-foreignkey" title="Permanent link">&para;</a></h3>
-<p>Use <code>prefetch_related()</code>. Returns a <strong>list of dicts</strong>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;chapters&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;chapters&quot;: [{&quot;id&quot;: 1, &quot;title&quot;: &quot;Chapter 1&quot;}, ...]}</span>
-</code></pre></div>
-<h2 id="controlling-fields">Controlling Fields<a class="headerlink" href="#controlling-fields" title="Permanent link">&para;</a></h2>
-<h3 id="main-model-fields">Main Model Fields<a class="headerlink" href="#main-model-fields" title="Permanent link">&para;</a></h3>
-<p>Use <code>.only()</code> to select specific fields:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;price&quot;: 29.99}</span>
-</code></pre></div>
-<h3 id="related-model-fields-select_related">Related Model Fields (select_related)<a class="headerlink" href="#related-model-fields-select_related" title="Permanent link">&para;</a></h3>
-<p>Use <code>.only()</code> with double-underscore syntax:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;publisher__name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;publisher&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;}}</span>
-</code></pre></div>
-<h3 id="related-model-fields-prefetch_related">Related Model Fields (prefetch_related)<a class="headerlink" href="#related-model-fields-prefetch_related" title="Permanent link">&para;</a></h3>
-<p>Use <code>Prefetch</code> objects with <code>.only()</code> on the inner queryset:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Author</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">))</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;authors&quot;: [{&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;}]}</span>
-</code></pre></div>
-<h2 id="query-efficiency">Query Efficiency<a class="headerlink" href="#query-efficiency" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Relation Type</th>
+<th>Relation</th>
+<th style="text-align: center;"><code>select_related()</code></th>
+<th style="text-align: center;"><code>prefetch_related()</code></th>
+<th>Nested value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ForeignKey</code>, <code>OneToOneField</code></td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>dict or <code>None</code></td>
+</tr>
+<tr>
+<td>Reverse one-to-one</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>dict or <code>None</code></td>
+</tr>
+<tr>
+<td>Multi-table inheritance link</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+<td>dict or <code>None</code></td>
+</tr>
+<tr>
+<td>Reverse <code>ForeignKey</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">✓</td>
+<td>list of dicts</td>
+</tr>
+<tr>
+<td><code>ManyToManyField</code>, both directions, custom <code>through</code> models</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">✓</td>
+<td>list of dicts</td>
+</tr>
+<tr>
+<td><code>GenericRelation</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">✓</td>
+<td>list of dicts</td>
+</tr>
+<tr>
+<td><code>GenericForeignKey</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">✓</td>
+<td>dict or <code>None</code></td>
+</tr>
+</tbody>
+</table>
+<p>Foreign keys with <code>to_field</code>, UUID primary keys and composite primary keys work on either side of a relation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Reverse one-to-one</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">Parent</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;profile&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># {&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;, &quot;profile&quot;: {&quot;id&quot;: 1, &quot;parent_id&quot;: 1, &quot;bio&quot;: &quot;...&quot;}}   # or &quot;profile&quot;: None</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Reverse foreign key: the chapter rows omit book_id</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;chapters&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;chapters&quot;: [{&quot;id&quot;: 1, &quot;title&quot;: &quot;Introduction&quot;, &quot;number&quot;: 1, &quot;page_count&quot;: 20}, ...]}</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Generic relation: the tag rows omit content_type_id and object_id</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;tags&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;tags&quot;: [{&quot;id&quot;: 1, &quot;tag&quot;: &quot;python&quot;}, ...]}</span>
+</code></pre></div>
+<h3 id="genericforeignkey">GenericForeignKey<a class="headerlink" href="#genericforeignkey" title="Permanent link">&para;</a></h3>
+<p>A plain lookup fetches every content type found in the rows. <code>GenericPrefetch</code> chooses the queryset per model; content types without a queryset are fetched by primary key, as Django does.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.contrib.contenttypes.prefetch</span><span class="w"> </span><span class="kn">import</span> <span class="n">GenericPrefetch</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">TaggedItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;content_object&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># {&quot;id&quot;: 1, &quot;tag&quot;: &quot;python&quot;, &quot;content_type_id&quot;: 7, &quot;object_id&quot;: 1, &quot;content_object&quot;: {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;}}</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">TaggedItem</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">GenericPrefetch</span><span class="p">(</span><span class="s2">&quot;content_object&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">Article</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">),</span> <span class="n">Comment</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;article&quot;</span><span class="p">)]),</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+</code></pre></div>
+<p>A lookup that continues past a <code>GenericForeignKey</code>, such as <code>content_object__comments</code>, needs every row to point at the same model. Rows pointing at different models raise <code>ValueError</code>.</p>
+<h2 id="controlling-columns">Controlling Columns<a class="headerlink" href="#controlling-columns" title="Permanent link">&para;</a></h2>
+<h3 id="the-main-model">The Main Model<a class="headerlink" href="#the-main-model" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;price&quot;: Decimal(&quot;29.99&quot;)}</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">defer</span><span class="p">(</span><span class="s2">&quot;isbn&quot;</span><span class="p">,</span> <span class="s2">&quot;published_date&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="select_related-targets">select_related() Targets<a class="headerlink" href="#select_related-targets" title="Permanent link">&para;</a></h3>
+<p>Use the double-underscore form of <code>only()</code> or <code>defer()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;publisher__name&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;publisher_id&quot;: 1, &quot;publisher&quot;: {&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;}}</span>
+</code></pre></div>
+<p>The foreign key column of a <code>select_related()</code> target is loaded even when <code>only()</code> or <code>defer()</code> left it out.</p>
+<h3 id="prefetch_related-targets">prefetch_related() Targets<a class="headerlink" href="#prefetch_related-targets" title="Permanent link">&para;</a></h3>
+<p>Use a <code>Prefetch</code> object whose queryset calls <code>only()</code> or <code>defer()</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Author</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">only</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)),</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;authors&quot;: [{&quot;id&quot;: 1, &quot;name&quot;: &quot;...&quot;}]}</span>
+</code></pre></div>
+<p>When <code>only()</code> or <code>defer()</code> on the main queryset leaves out a column a prefetch needs, such as <code>publisher_id</code> for <code>prefetch_related("publisher")</code>, the missing values are loaded with one extra query by primary key and stay out of the result.</p>
+<h2 id="prefetch-objects">Prefetch Objects<a class="headerlink" href="#prefetch-objects" title="Permanent link">&para;</a></h2>
+<p><code>Prefetch</code> works as it does on model instances. The queryset can filter, order, slice, annotate, and use <code>only()</code>, <code>select_related()</code> or <code>prefetch_related()</code>; <code>to_attr</code> names the key.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;chapters&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Chapter</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">page_count__gt</span><span class="o">=</span><span class="mi">30</span><span class="p">)),</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Author</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)[:</span><span class="mi">1</span><span class="p">],</span> <span class="n">to_attr</span><span class="o">=</span><span class="s2">&quot;first_author&quot;</span><span class="p">),</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Publisher</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;books&quot;</span><span class="p">)),</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+</code></pre></div>
+<p>Nested lookups (<code>"authors__books"</code>) and <code>Prefetch</code> objects on nested paths (<code>Prefetch("authors__books", queryset=...)</code>) attach at each level.</p>
+<h2 id="query-counts">Query Counts<a class="headerlink" href="#query-counts" title="Permanent link">&para;</a></h2>
+<p><code>values_nested()</code> runs the same number of queries as <code>prefetch_related()</code> on model instances, with the same SQL for the prefetch queries.</p>
+<table>
+<thead>
+<tr>
+<th>Relation</th>
 <th>Method</th>
 <th>Queries</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>ForeignKey</td>
+<td>Foreign key, one-to-one</td>
 <td><code>select_related()</code></td>
 <td>1 (JOIN)</td>
 </tr>
 <tr>
-<td>ForeignKey</td>
+<td>Foreign key, one-to-one</td>
 <td><code>prefetch_related()</code></td>
 <td>2</td>
 </tr>
 <tr>
-<td>ManyToMany</td>
+<td>Many-to-many, reverse foreign key, generic relation</td>
 <td><code>prefetch_related()</code></td>
 <td>2</td>
 </tr>
 <tr>
-<td>Reverse FK</td>
+<td>Each further lookup or nesting level</td>
 <td><code>prefetch_related()</code></td>
-<td>2</td>
+<td>+1</td>
 </tr>
 </tbody>
 </table>
-<h3 id="combined-example">Combined Example<a class="headerlink" href="#combined-example" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># 1 (JOIN for publisher) + 1 (prefetch authors) + 1 (prefetch tags) = 3 queries</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># 1 (JOIN for publisher) + 1 (authors) + 1 (tags) = 3 queries</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;publisher&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
 </code></pre></div>
-<h2 id="prefetch-objects">Prefetch Objects<a class="headerlink" href="#prefetch-objects" title="Permanent link">&para;</a></h2>
-<p>Full support for Django's <code>Prefetch</code> objects:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django.db.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Prefetch</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># Filter prefetched data</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;chapters&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Chapter</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">page_count__gt</span><span class="o">=</span><span class="mi">30</span><span class="p">))</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="c1"># Custom to_attr</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>    <span class="n">Prefetch</span><span class="p">(</span><span class="s2">&quot;chapters&quot;</span><span class="p">,</span> <span class="n">queryset</span><span class="o">=</span><span class="n">Chapter</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">number</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">to_attr</span><span class="o">=</span><span class="s2">&quot;first_chapter&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="c1"># {&quot;id&quot;: 1, &quot;title&quot;: &quot;...&quot;, &quot;first_chapter&quot;: [{&quot;id&quot;: 1, &quot;title&quot;: &quot;Introduction&quot;}]}</span>
+<h2 id="large-result-sets">Large Result Sets<a class="headerlink" href="#large-result-sets" title="Permanent link">&para;</a></h2>
+<p><code>iterator(chunk_size=...)</code> streams rows from the database and prefetches each chunk before yielding it. As in Django, <code>chunk_size</code> is required when the queryset has prefetch lookups.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">()</span><span class="o">.</span><span class="n">iterator</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">500</span><span class="p">):</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="o">...</span>
 </code></pre></div>
+<p>Async iteration works the same way, with <code>async for</code> or <code>aiterator(chunk_size=...)</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">async</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">Book</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">prefetch_related</span><span class="p">(</span><span class="s2">&quot;authors&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_nested</span><span class="p">():</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="o">...</span>
+</code></pre></div>
+<h2 id="multiple-databases">Multiple Databases<a class="headerlink" href="#multiple-databases" title="Permanent link">&para;</a></h2>
+<p><code>using()</code> routes the main query and every prefetch query to that alias. A <code>Prefetch</code> queryset with its own <code>using()</code> keeps its alias.</p>
+<h2 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h2>
+<p>The errors match <code>prefetch_related()</code> on model instances:</p>
+<ul>
+<li><code>AttributeError</code> for a name that does not exist on the model.</li>
+<li><code>ValueError</code> for a name that is not a relation, for a lookup that appears twice with different querysets, for a <code>to_attr</code> that is the name of a field, and for a <code>GenericPrefetch</code> with two querysets for the same content type.</li>
+<li><code>TypeError</code> when <code>values_nested()</code> follows <code>values()</code> or <code>values_list()</code>.</li>
+</ul>
+<h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<p><code>django.contrib.contenttypes</code> must be in <code>INSTALLED_APPS</code>. The package imports it for <code>GenericRelation</code> and <code>GenericForeignKey</code> support. The package itself has no models and needs no entry in <code>INSTALLED_APPS</code>.</p>
 
 
 
@@ -1264,7 +1276,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
     
   </body>
