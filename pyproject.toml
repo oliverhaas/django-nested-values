@@ -32,15 +32,15 @@ Repository = "https://github.com/oliverhaas/django-nested-values.git"
 
 [dependency-groups]
 dev = [
-  "django-stubs==6.1.0",
+  "django-stubs==6.1.1",
   "mypy==2.3.1",
   "pre-commit==4.6.2",
   "pytest==9.1.1",
   "pytest-cov==7.1.0",
   "pytest-django==4.14.0",
   "pytest-xdist==3.8.0",
-  "ruff==0.16.7",
-  "ty==0.0.80",
+  "ruff==0.16.8",
+  "ty==0.0.82",
 ]
 docs = ["mkdocs==1.6.1", "mkdocs-material==9.7.7", "mike==2.2.0"]
 
